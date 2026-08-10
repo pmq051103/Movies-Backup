@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Trang chính -->
+  <url><loc>https://khonggianphim.online/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://khonggianphim.online/phim-le</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://khonggianphim.online/phim-bo</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://khonggianphim.online/phim-chieu-rap</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://khonggianphim.online/top-rated</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/tim-kiem</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://khonggianphim.online/yeu-thich</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://khonggianphim.online/lich-su</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://khonggianphim.online/donate</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+
+  <!-- Thể loại -->
+  <url><loc>https://khonggianphim.online/the-loai/hanh-dong</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/tinh-cam</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/hai-huoc</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/kinh-di</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/tam-ly</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/chinh-kich</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/phieu-luu</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/vien-tuong</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/khoa-hoc</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/hinh-su</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/co-trang</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/chien-tranh</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/bi-an</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/gia-dinh</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/vo-thuat</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/than-thoai</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/the-thao</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/am-nhac</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/hoc-duong</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/lich-su</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/tai-lieu</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/tre-em</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/kinh-dien</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/mien-tay</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/the-loai/phim-ngan</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+
+  <!-- Quốc gia -->
+  <url><loc>https://khonggianphim.online/quoc-gia/au-my</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/han-quoc</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/trung-quoc</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/nhat-ban</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/viet-nam</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/thai-lan</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/dai-loan</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/hong-kong</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/an-do</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/anh</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/phap</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/duc</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/nga</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/indonesia</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/philippines</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/tay-ban-nha</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/brazil</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/canada</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/uc</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/y</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/mexico</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/tho-nhi-ky</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://khonggianphim.online/quoc-gia/malaysia</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+</urlset>

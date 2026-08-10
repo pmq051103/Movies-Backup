@@ -1,0 +1,30 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Secondary API — vsmov.com/api (bypasses CORS in prod).
+[[redirects]]
+  from = "/api2/*"
+  to = "https://vsmov.com/api/:splat"
+  status = 200
+  force = true
+
+# Tertiary API — ophim1.com (bypasses CORS in prod).
+[[redirects]]
+  from = "/api3/*"
+  to = "https://ophim1.com/:splat"
+  status = 200
+  force = true
+
+# Primary API — phimapi.com (bypasses CORS in prod).
+[[redirects]]
+  from = "/api/*"
+  to = "https://phimapi.com/:splat"
+  status = 200
+  force = true
+
+# SPA fallback — send every non-file route to index.html so React Router handles it.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

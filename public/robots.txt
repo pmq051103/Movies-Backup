@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /api/
+Disallow: /api2/
+
+Sitemap: https://khonggianphim.online/sitemap.xml

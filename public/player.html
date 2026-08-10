@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Không Gian Phim Player</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  #player { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="player"></div>
+
+<!-- Same versions as player.phimapi.com -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/artplayer/5.4.0/artplayer.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(window.location.search);
+  var videoUrl = params.get('url');
+  if (!videoUrl) {
+    document.body.innerHTML = '<p style="color:#fff;text-align:center;margin-top:40vh">No video URL provided.</p>';
+    return;
+  }
+
+  // Determine if this is an m3u8 (HLS) or direct mp4 URL
+  var isHls = /\.m3u8/i.test(videoUrl);
+
+  var art = new Artplayer({
+    container: '#player',
+    url: videoUrl,
+    muted: false,
+    autoplay: true,
+    autoSize: false,
+    autoMini: true,
+    loop: false,
+    mutex: true,
+    setting: true,
+    pip: true,
+    flip: false,
+    lock: true,
+    fastForward: true,
+    playbackRate: true,
+    aspectRatio: true,
+    theme: '#ff0057',
+    fullscreen: true,
+    fullscreenWeb: false,
+    miniProgressBar: true,
+    autoOrientation: true,
+    lang: 'vietnamese',
+    i18n: {
+      vietnamese: {
+        Play: 'Phát',
+        Pause: 'Dừng',
+        'Show Setting': 'Cài đặt',
+        'PIP Mode': 'Ảnh-trong-ảnh',
+        Fullscreen: 'Phóng to',
+        'Play Speed': 'Tốc độ phát',
+        'Aspect Ratio': 'Tỷ lệ khung hình',
+        Normal: 'Bình thường',
+        'Video Info': 'Thông tin Video',
+        Close: 'Đóng',
+        Default: 'Mặc định',
+      },
+    },
+    controls: [
+      {
+        position: 'left',
+        name: 'fast-rewind',
+        index: 10,
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><path fill="currentColor" d="M4 18A12 12 0 1 0 16 6h-4V1L6 7l6 6V8h4A10 10 0 1 1 6 18Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>',
+        tooltip: '10 giây trước',
+        click: function () { art.seek = art.currentTime - 10; },
+      },
+      {
+        position: 'left',
+        name: 'fast-forward',
+        index: 11,
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><path fill="currentColor" d="M26 18A10 10 0 1 1 16 8h4v5l6-6-6-6v5h-4a12 12 0 1 0 12 12Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>',
+        tooltip: '10 giây sau',
+        click: function () { art.seek = art.currentTime + 10; },
+      },
+    ],
+    customType: isHls
+      ? {
+          m3u8: function (video, url) {
+            if (Hls.isSupported()) {
+              if (art.hls) art.hls.destroy();
+              var hls = new Hls();
+              hls.loadSource(url);
+              hls.attachMedia(video);
+              art.hls = hls;
+              art.on('destroy', function () { hls.destroy(); });
+
+              // ── Quality selector — only show if stream has multiple levels ──
+              var qualityAdded = false;
+              var hlsReady = false;
+              var artReady = false;
+
+              function tryAddQuality() {
+                if (qualityAdded || !hlsReady || !artReady) return;
+                var levels = hls.levels || [];
+                // Only show quality picker when there are 2+ levels to switch between
+                if (levels.length <= 1) return;
+                qualityAdded = true;
+
+                function getLabel(level) {
+                  var h = level.height || 0;
+                  if (h >= 2160) return '4K';
+                  if (h >= 1440) return '1440p';
+                  if (h >= 1080) return '1080p';
+                  if (h >= 720) return '720p';
+                  if (h >= 480) return '480p';
+                  if (h >= 360) return '360p';
+                  if (h > 0) return h + 'p';
+                  var bw = level.bitrate || 0;
+                  if (bw >= 5000000) return 'FHD';
+                  if (bw >= 2500000) return 'HD';
+                  if (bw >= 1000000) return 'SD';
+                  return 'SD';
+                }
+
+                var items = levels.map(function (lv, i) {
+                  return { html: getLabel(lv), value: i };
+                });
+                items.sort(function (a, b) {
+                  var ha = levels[a.value].height || 0;
+                  var hb = levels[b.value].height || 0;
+                  if (ha !== hb) return hb - ha;
+                  return (levels[b.value].bitrate || 0) - (levels[a.value].bitrate || 0);
+                });
+                items.unshift({ html: 'Tự động', value: -1 });
+
+                art.setting.add([{
+                  html: 'Chất lượng',
+                  width: 200,
+                  tooltip: 'Tự động',
+                  selector: items.map(function (it) {
+                    return { html: it.html, value: it.value, default: it.value === -1 };
+                  }),
+                  onSelect: function (item) {
+                    hls.currentLevel = item.value;
+                    return item.html;
+                  },
+                }]);
+              }
+
+              hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                hlsReady = true;
+                tryAddQuality();
+              });
+              hls.on(Hls.Events.LEVEL_LOADED, function () {
+                hlsReady = true;
+                tryAddQuality();
+              });
+              art.on('ready', function () {
+                artReady = true;
+                tryAddQuality();
+              });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = url;
+            }
+          },
+        }
+      : undefined,
+  });
+
+  // ===================================================================
+  // BRIDGE: notify the parent window about player events so the
+  // WatchPage can implement auto-next, progress tracking, etc.
+  // ===================================================================
+
+  function postToParent(payload) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(payload, '*');
+      }
+    } catch (_) {
+      // Silently ignore if parent is inaccessible
+    }
+  }
+
+  // Video ended → parent can auto-advance to next episode
+  art.on('video:ended', function () {
+    postToParent({ event: 'ended' });
+    postToParent('ended'); // string format fallback
+  });
+
+  // Periodic time updates → parent can track watch progress
+  art.on('video:timeupdate', function () {
+    postToParent({
+      event: 'timeupdate',
+      currentTime: art.currentTime,
+      duration: art.duration,
+      percentage: art.duration > 0 ? art.currentTime / art.duration : 0,
+    });
+  });
+
+  // Video ready (duration known)
+  art.on('ready', function () {
+    postToParent({
+      event: 'ready',
+      duration: art.duration,
+    });
+  });
+
+  // Error
+  art.on('video:error', function () {
+    postToParent({ event: 'error' });
+  });
+
+  // ===================================================================
+  // INBOUND: accept commands from the parent window (seek, pause, etc.)
+  // ===================================================================
+  window.addEventListener('message', function (e) {
+    if (!e.data || typeof e.data !== 'object') return;
+    if (e.data.action === 'seek' && typeof e.data.time === 'number') {
+      art.seek = e.data.time;
+    }
+    if (e.data.action === 'pause') {
+      art.pause();
+    }
+    if (e.data.action === 'play') {
+      art.play();
+    }
+  });
+
+  window.art = art;
+})();
+</script>
+</body>
+</html>
