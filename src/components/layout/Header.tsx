@@ -487,7 +487,7 @@ const Header: React.FC = () => {
               <div className="ml-2 xl:ml-auto flex items-center gap-2 xl:gap-4 shrink-0 relative">
                 <RouterLink
                   to={ROUTES.FAVORITES}
-                  className="p-2 rounded-full transition-colors text-zinc-400 hover:text-[#ffd166] hidden xl:flex"
+                  className="p-2 rounded-full transition-colors text-zinc-400 hover:text-[#ffd166] hidden lg:flex"
                   aria-label={t("nav.favorites")}
                   title={t("nav.favorites")}
                 >
