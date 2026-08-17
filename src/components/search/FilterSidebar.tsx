@@ -58,7 +58,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   };
 
   const selectClasses =
-    'bg-gray-800 border border-gray-700 rounded-lg text-white p-2.5 w-full focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors appearance-none cursor-pointer';
+    'bg-[#18181b] border border-white/10 rounded-lg text-white p-2.5 w-full focus:outline-none focus:border-[#ffd166] focus:ring-1 focus:ring-[#ffd166] transition-colors appearance-none cursor-pointer';
 
   const labelClasses = 'block text-sm font-medium text-gray-300 mb-1.5';
 
@@ -176,13 +176,13 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       <div className="space-y-2 pt-2">
         <button
           onClick={handleApply}
-          className="bg-red-600 hover:bg-red-700 w-full rounded-lg py-2.5 font-semibold text-white transition-colors"
+          className="bg-[#ffd166] hover:bg-[#ffe099] w-full rounded-lg py-2.5 font-semibold text-[#0f111a] transition-colors"
         >
           {t('filter.apply')}
         </button>
         <button
           onClick={handleReset}
-          className="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 w-full rounded-lg py-2.5 text-gray-300 transition-colors"
+          className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 w-full rounded-lg py-2.5 text-gray-300 transition-colors"
         >
           <FaUndo className="h-3 w-3" />
           <span>{t('filter.reset')}</span>
@@ -197,7 +197,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
       <div className="lg:hidden mb-4">
         <button
           onClick={() => setIsExpanded((prev) => !prev)}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-lg px-4 py-2.5 text-gray-300 transition-colors"
+          className="flex items-center gap-2 bg-[#18181b] hover:bg-white/10 rounded-lg px-4 py-2.5 text-gray-300 transition-colors"
         >
           <FaFilter className="h-4 w-4" />
           <span className="text-sm font-medium">{t('filter.filters')}</span>
@@ -215,7 +215,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-xl p-4 mb-6">
+              <div className="bg-[#18181b]/80 backdrop-blur-sm border border-white/10 rounded-xl p-4 mb-6">
                 {filterContent}
               </div>
             </motion.div>
@@ -225,9 +225,9 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
       {/* Desktop: always visible sidebar */}
       <aside className="hidden lg:block w-64 flex-shrink-0">
-        <div className="sticky top-24 bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-xl p-5">
+        <div className="sticky top-24 bg-[#18181b]/80 backdrop-blur-sm border border-white/10 rounded-xl p-5">
           <h3 className="flex items-center gap-2 text-base font-semibold text-white mb-5">
-            <FaFilter className="h-4 w-4 text-red-500" />
+            <FaFilter className="h-4 w-4 text-[#ffd166]" />
             {t('filter.filters')}
           </h3>
           {filterContent}

@@ -1,11 +1,10 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaStar, FaFire, FaFilm } from 'react-icons/fa';
+import { FaStar, FaFire } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
 import { ROUTES } from '@/constants';
-import { getMoviePoster, onImgError, formatNumber } from '@/utils';
-import { useCatalogStats } from '@/hooks';
+import { getMoviePoster, onImgError } from '@/utils';
 import type { MovieListItem } from '@/types';
 
 interface SidebarProps {
@@ -15,41 +14,22 @@ interface SidebarProps {
 }
 
 /**
- * Right sidebar for homepage — shows a total-catalog-size card, then
- * "Đánh giá cao" / "Hot Trong Tuần" / "Thịnh Hành" ranked lists with
- * small poster thumbnails, like motchille.tv.
+ * Right sidebar for homepage — "Đánh giá cao" / "Hot Trong Tuần" /
+ * "Thịnh Hành" ranked lists with small poster thumbnails, like
+ * motchille.tv. (The old "Tổng số phim hiện tại" card was removed —
+ * that number now lives in the "Đầu phim duy nhất" stat on the
+ * StatsBlock up top, so it wasn't needed twice.)
  */
 const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeekly = [] }) => {
   const { t } = useTranslation();
-  const { data: catalogStats, isLoading: statsLoading } = useCatalogStats();
 
   return (
     <aside className="space-y-8">
-      {/* Tổng số phim hiện tại */}
-      <div className="rounded-xl border border-gray-800 bg-gradient-to-br from-red-950/40 to-gray-900/50 p-4">
-        <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-          <FaFilm className="h-3.5 w-3.5 text-red-500" />
-          {t('home.totalMovies', 'Tổng số phim hiện tại')}
-        </h3>
-        {statsLoading ? (
-          <div className="h-9 w-24 animate-pulse rounded bg-gray-800" />
-        ) : (
-          <>
-            <p className="text-3xl font-extrabold text-white">
-              {formatNumber(catalogStats?.totalEstimated ?? 0)}
-            </p>
-            <p className="mt-1 text-[11px] text-gray-500">
-              {t('home.totalMoviesNote', 'Dữ liệu được tổng hợp từ nhiều nguồn.')}
-            </p>
-          </>
-        )}
-      </div>
-
       {/* Top Rated */}
       {topRated.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4">
+        <div className="rounded-xl border border-white/10 bg-[#18181b]/80 p-4">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-            <span className="h-4 w-1 rounded-full bg-red-500" />
+            <span className="h-4 w-1 rounded-full bg-[#ffd166]" />
             {t('home.topRated', 'Đánh giá cao')}
           </h3>
           <div className="space-y-3">
@@ -77,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
                 >
                   {/* Rank number */}
                   <span className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold ${
-                    idx < 3 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400'
+                    idx < 3 ? 'bg-[#ffd166] text-[#0f111a]' : 'bg-gray-800 text-gray-400'
                   }`}>
                     {idx + 1}
                   </span>
@@ -95,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-red-400">
+                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-[#ffd166]">
                       {movie.name}
                     </p>
                     {movie.origin_name && movie.origin_name !== movie.name && (
@@ -124,9 +104,9 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
 
       {/* Hot Trong Tuần */}
       {hotWeekly.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4">
+        <div className="rounded-xl border border-white/10 bg-[#18181b]/80 p-4">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-            <FaFire className="h-3.5 w-3.5 text-orange-500" />
+            <FaFire className="h-3.5 w-3.5 text-[#ffd166]" />
             Hot Trong Tuần
           </h3>
           <div className="space-y-3">
@@ -141,7 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
                   className="group flex items-start gap-3 rounded-lg p-1 transition-colors hover:bg-white/5"
                 >
                   <span className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold ${
-                    idx < 3 ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white' : 'bg-gray-800 text-gray-400'
+                    idx < 3 ? 'bg-gradient-to-br from-[#ffd166] to-[#ffb53d] text-[#0f111a]' : 'bg-gray-800 text-gray-400'
                   }`}>
                     {idx + 1}
                   </span>
@@ -155,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-orange-400">
+                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-[#ffd166]">
                       {movie.name}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-500">
@@ -177,9 +157,9 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
 
       {/* Trending / Hot */}
       {trending.length > 0 && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4">
+        <div className="rounded-xl border border-white/10 bg-[#18181b]/80 p-4">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white">
-            <FaFire className="h-3.5 w-3.5 text-orange-500" />
+            <FaFire className="h-3.5 w-3.5 text-[#ffd166]" />
             {t('home.trending', 'Thịnh Hành')}
           </h3>
           <div className="space-y-3">
@@ -195,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
                   className="group flex items-start gap-3 rounded-lg p-1 transition-colors hover:bg-white/5"
                 >
                   <span className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold ${
-                    idx < 3 ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400'
+                    idx < 3 ? 'bg-[#ffd166] text-[#0f111a]' : 'bg-gray-800 text-gray-400'
                   }`}>
                     {idx + 1}
                   </span>
@@ -211,7 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topRated = [], trending = [], hotWeek
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-orange-400">
+                    <p className="line-clamp-1 text-sm font-medium text-gray-200 group-hover:text-[#ffd166]">
                       {movie.name}
                     </p>
                     {movie.origin_name && movie.origin_name !== movie.name && (

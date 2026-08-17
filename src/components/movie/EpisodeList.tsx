@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FaServer, FaPlay } from "react-icons/fa";
+import { FaServer } from "react-icons/fa";
 
 import { ROUTES } from "@/constants";
 import type { Episode } from "@/types";
@@ -55,15 +55,15 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
 
   const currentServer = episodes[activeServer];
   const totalEps = currentServer?.server_data.length ?? 0;
-  // Auto-detect "single-episode" content (phim lẻ) so we can show a cleaner
-  // "Xem phim" CTA instead of a lonely square button with the word "Full".
+  // Auto-detect "single-episode" content (phim lẻ) so the episode grid
+  // shows one button labeled "Full" instead of "1".
   const isSingleEpisode =
     totalEps === 1 &&
     /^(full|tap-full)$/i.test(currentServer?.server_data[0]?.slug ?? "");
 
   const containerCls = compact
-    ? "rounded-xl bg-gray-900/70 border border-gray-800 p-3"
-    : "rounded-xl bg-gray-900/80 backdrop-blur-sm border border-gray-800 p-4";
+    ? "rounded-xl bg-[#18181b]/70 border border-white/10 p-3"
+    : "rounded-xl bg-[#18181b]/80 backdrop-blur-sm border border-white/10 p-4";
 
   return (
     <div className={containerCls}>
@@ -71,7 +71,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
         <h3 className={`font-semibold text-white ${compact ? "text-base" : "text-lg"}`}>
           {t("movie.episodes")}
         </h3>
-        {!isSingleEpisode && totalEps > 0 && (
+        {totalEps > 0 && (
           <span className="text-xs text-gray-500">{totalEps} tập</span>
         )}
       </div>
@@ -86,7 +86,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
               onClick={() => setActiveServer(idx)}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
                 idx === activeServer
-                  ? "bg-red-600 text-white"
+                  ? "bg-[#ffd166] text-[#0f111a]"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
               }`}
               title={ep.server_name}
@@ -102,57 +102,40 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
       {currentServer && (
         <div
           className={
-            isSingleEpisode
-              ? ""
-              : compact
-                ? "grid grid-cols-3 gap-1.5 sm:grid-cols-4 max-h-[420px] overflow-y-auto pr-1"
-                : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 max-h-[420px] overflow-y-auto pr-1"
+            compact
+              ? "grid grid-cols-3 gap-1.5 sm:grid-cols-4 max-h-[420px] overflow-y-auto pr-1"
+              : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 max-h-[420px] overflow-y-auto pr-1"
           }
         >
-          {isSingleEpisode ? (
-            <button
-              type="button"
-              onClick={() =>
-                handleEpisodeClick(
-                  currentServer.server_data[0].slug,
-                  currentServer.server_name,
-                )
-              }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-            >
-              <FaPlay className="h-3 w-3" />
-              {t("watch.watchNow")}
-            </button>
-          ) : (
-            currentServer.server_data.map((serverData, idx) => {
-              const isActive = currentEpisodeSlug === serverData.slug;
-              // Label the button by its position (idx + 1) so the visible
-              // numbers always match the total-episode count. Some upstream
-              // data has stray non-numeric or repeated labels, which used
-              // to make "1184 tập" appear alongside a last button of
-              // "1172" — sequential numbering keeps them consistent.
-              // The full name still shows in the browser tooltip.
-              const shortLabel = String(idx + 1);
-              return (
-                <button
-                  key={serverData.slug}
-                  type="button"
-                  onClick={() =>
-                    handleEpisodeClick(serverData.slug, currentServer.server_name)
-                  }
-                  title={serverData.name}
-                  className={`flex items-center justify-center rounded-md px-1 py-2 text-xs font-semibold transition-all min-w-0 ${
-                    isActive
-                      ? "bg-red-600 text-white shadow-md shadow-red-600/30"
-                      : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
-                  aria-current={isActive ? "true" : undefined}
-                >
-                  <span className="truncate">{shortLabel}</span>
-                </button>
-              );
-            })
-          )}
+          {currentServer.server_data.map((serverData, idx) => {
+            const isActive = currentEpisodeSlug === serverData.slug;
+            // Label the button by its position (idx + 1) so the visible
+            // numbers always match the total-episode count. Some upstream
+            // data has stray non-numeric or repeated labels, which used
+            // to make "1184 tập" appear alongside a last button of
+            // "1172" — sequential numbering keeps them consistent.
+            // Single-episode movies (phim lẻ) show "Full" instead of "1".
+            // The full name still shows in the browser tooltip.
+            const shortLabel = isSingleEpisode ? "Full" : String(idx + 1);
+            return (
+              <button
+                key={serverData.slug}
+                type="button"
+                onClick={() =>
+                  handleEpisodeClick(serverData.slug, currentServer.server_name)
+                }
+                title={serverData.name}
+                className={`flex items-center justify-center rounded-md px-1 py-2 text-xs font-semibold transition-all min-w-0 ${
+                  isActive
+                    ? "bg-[#ffd166] text-[#0f111a] shadow-md shadow-[#ffd166]/30"
+                    : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                }`}
+                aria-current={isActive ? "true" : undefined}
+              >
+                <span className="truncate">{shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

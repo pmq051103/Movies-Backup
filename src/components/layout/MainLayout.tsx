@@ -4,9 +4,11 @@ import { Helmet } from "react-helmet-async";
 
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import BottomNav from "@/components/layout/BottomNav";
 import WelcomeTip from "@/components/common/WelcomeTip";
 import ScrollToTopButton from "@/components/common/ScrollToTopButton";
 import { useLanguageStore } from "@/store/useLanguageStore";
+import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 
 /**
  * Root layout — Header + <Outlet /> + Footer.
@@ -16,6 +18,11 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 const MainLayout: React.FC = () => {
   const { language } = useLanguageStore();
   const { pathname } = useLocation();
+
+  // Records every page view (direct link, search engine, in-site nav —
+  // all of it) to Supabase for the /thong-ke dashboard. No-ops if
+  // Supabase env vars aren't set.
+  useAnalyticsTracking();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -30,12 +37,15 @@ const MainLayout: React.FC = () => {
       <div className="flex min-h-screen flex-col bg-gray-950 text-gray-100">
         <Header />
 
-        <main className="flex-1 pt-20">
+        <main className="flex-1 pt-[68px] lg:pt-0">
           <Outlet />
         </main>
 
         <Footer />
       </div>
+
+      {/* Mobile bottom nav (tophim style) */}
+      <BottomNav />
 
       {/* First-visit tip about dual-source search */}
       <WelcomeTip />

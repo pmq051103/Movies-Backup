@@ -13,7 +13,9 @@
     "close": "Close",
     "profile": "Profile",
     "nowPlaying": "In Theaters",
-    "upcoming": "Upcoming"
+    "upcoming": "Upcoming",
+    "anime": "Animation",
+    "tvShowProgram": "TV Shows"
   },
   "hero": {
     "watchNow": "Watch Now",
@@ -58,12 +60,12 @@
     "updatedToday": "Recently Updated",
     "newToday": "Updated Today",
     "nowPlaying": "Now In Theaters",
+    "upcoming": "Upcoming Movies",
     "topMustWatch": "Top Must-Watch Movies",
     "topNowPlaying": "Top 10 In Theaters",
     "topVietCinema": "Vietnamese Cinema",
     "blockbuster": "Blockbusters",
     "topBlockbuster": "Top 10 Blockbusters",
-    "upcoming": "Upcoming Movies",
     "phim4k": "4K Movies",
     "subteam": "Subteam Picks",
     "totalMovies": "Total Movies Available",
@@ -87,6 +89,8 @@
     "views": "Views",
     "rating": "Rating",
     "episodes": "Episodes",
+    "episodeCount": "Episode Count",
+    "episodeUnit": "Episode",
     "season": "Season",
     "recommendations": "Recommendations",
     "similar": "Similar",
@@ -305,7 +309,9 @@
     "genresTitle": "Movie Genres",
     "countriesTitle": "Movies by Country",
     "nowPlayingTitle": "Now Playing - Watch In Theater Movies Online",
-    "upcomingTitle": "Upcoming Movies - Watch New Trailers"
+    "upcomingTitle": "Upcoming Movies - Watch New Trailers",
+    "animeTitle": "Animation - Watch Anime Online",
+    "tvShowProgramTitle": "TV Shows - Watch TV Shows Online"
   },
   "welcome": {
     "title": "Quick tip",

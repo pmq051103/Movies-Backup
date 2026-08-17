@@ -2,9 +2,10 @@ import React from 'react';
 
 export const MovieCardSkeleton: React.FC = () => {
   return (
-    <div>
-      <div className="aspect-[2/3] rounded-lg bg-gray-800 animate-pulse" />
-      <div className="h-4 bg-gray-700 rounded mt-2 w-3/4 animate-pulse" />
+    <div className="flex flex-col gap-2.5">
+      <div className="aspect-[2/3] w-full rounded-xl bg-gray-800 animate-pulse" />
+      <div className="h-3.5 bg-gray-700 rounded-md w-4/5 animate-pulse" />
+      <div className="h-2.5 bg-gray-700 rounded-md w-1/2 animate-pulse" />
     </div>
   );
 };
@@ -83,7 +84,7 @@ interface GridSkeletonProps {
 
 export const GridSkeleton: React.FC<GridSkeletonProps> = ({ count = 18 }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
       {Array.from({ length: count }).map((_, i) => (
         <MovieCardSkeleton key={i} />
       ))}

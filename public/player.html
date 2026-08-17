@@ -8,6 +8,176 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   #player { width: 100%; height: 100%; }
+
+  /* ── Mobile control-bar fix ──────────────────────────────────────
+     Verified against Artplayer 5.4.0's actual source (not guessed):
+     controls never get a `data-name` attribute — that selector never
+     matched anything. And `lock` isn't a bottom-bar control at all;
+     it's a separate `.art-layer-lock` overlay, only auto-added when
+     Artplayer's own UA sniffing thinks it's mobile — so it's disabled
+     properly below via `lock: false` in the player config instead of
+     (ineffectively) hiding it here. `aspectRatio` was never in the
+     bottom bar either (it only lives in the settings/⚙ panel).
+
+     What's ACTUALLY in the bottom bar on mobile (real classes, e.g.
+     `.art-control-playAndPause`): rewind, play/pause, forward, volume,
+     time text, setting, pip, fullscreen — too wide for a phone screen,
+     pushing fullscreen off to the right.
+
+     Fix: play/pause + rewind/forward now live in a big overlay on top
+     of the video itself (#kgp-center-controls below), so their bottom-bar
+     copies are hidden on mobile — freeing most of the row's width so
+     fullscreen fits without scrolling. */
+  @media (max-width: 480px) {
+    .art-bottom .art-control-fast-rewind,
+    .art-bottom .art-control-fast-forward,
+    .art-bottom .art-control-playAndPause {
+      display: none !important;
+    }
+    .art-controls,
+    .art-controls-left,
+    .art-controls-right {
+      gap: 2px !important;
+    }
+    .art-control {
+      padding: 0 4px !important;
+    }
+    .art-icon svg {
+      width: 20px !important;
+      height: 20px !important;
+    }
+    .art-controls {
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+    }
+    .art-controls::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    /* Artplayer's own big center play/pause "state" icon
+       (`.art-mask .art-state`) would otherwise sit right behind our
+       custom overlay buttons and double up visually — it's replaced
+       by #kgp-center-controls, so hide it on mobile only. */
+    .art-mask .art-state {
+      display: none !important;
+    }
+  }
+
+  /* ── Center overlay controls (play/pause + ±10s) ─────────────────
+     Mobile-only, YouTube-style: big, thumb-friendly buttons sitting
+     directly on the video instead of squeezed into the bottom icon
+     row. Desktop keeps the bottom-bar buttons (plenty of room there),
+     so this overlay is hidden by default and only shown under the
+     max-width:480px query. */
+  #kgp-center-controls {
+    display: none;
+  }
+  @media (max-width: 480px) {
+    #kgp-center-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      width: 100%;
+      pointer-events: none;
+      /* Hidden by default, same as Artplayer's own bottom bar
+         (`.art-bottom` starts at opacity:0) — only shown while
+         `.art-control-show` / `.art-hover` is present on the player
+         root, and faded out again after Artplayer's own auto-hide
+         timer (CONTROL_HIDE_TIME) removes those classes. */
+      opacity: 0;
+      transition: opacity var(--art-transition-duration, .2s) ease;
+    }
+    .art-video-player.art-control-show #kgp-center-controls,
+    .art-video-player.art-hover #kgp-center-controls {
+      opacity: 1;
+    }
+    /* Buttons themselves must stop accepting taps while faded out —
+       otherwise they'd still be clickable (just invisible) since
+       `pointer-events` on a child isn't blocked by a `none` parent. */
+    #kgp-center-controls button {
+      pointer-events: none;
+    }
+    .art-video-player.art-control-show #kgp-center-controls button,
+    .art-video-player.art-hover #kgp-center-controls button {
+      pointer-events: auto;
+    }
+    #kgp-center-controls button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      border: none;
+      border-radius: 999px;
+      color: #fff;
+      padding: 0;
+    }
+    #kgp-center-controls .kgp-seek-btn {
+      width: 44px;
+      height: 44px;
+    }
+    #kgp-center-controls .kgp-seek-btn svg {
+      width: 24px;
+      height: 24px;
+    }
+    #kgp-center-controls .kgp-play-btn {
+      width: 60px;
+      height: 60px;
+    }
+    #kgp-center-controls .kgp-play-btn svg {
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  /* ── "Bật tiếng" (unmute) pill ────────────────────────────────────
+     Shown ONLY when the browser blocked sound-first autoplay and we
+     fell back to muted autoplay (iOS Safari in particular). Once shown
+     it STAYS visible until the user taps it — it never fades out with
+     the controls. It just tracks the control bar vertically: when the
+     bar slides down out of view the pill slides DOWN to the bottom
+     edge (bottom: 8px), and rises back above the bar (bottom: 52px)
+     when the controls show again. */
+  #kgp-unmute {
+    display: none;
+  }
+  #kgp-unmute.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .art-layer-kgp-unmute {
+    bottom: 8px;
+    transition: bottom var(--art-transition-duration, .2s) ease;
+  }
+  .art-video-player.art-control-show .art-layer-kgp-unmute,
+  .art-video-player.art-hover .art-layer-kgp-unmute {
+    bottom: 52px;
+  }
+  #kgp-unmute .kgp-unmute-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+  #kgp-unmute .kgp-unmute-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  #kgp-unmute .kgp-unmute-btn svg {
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -16,6 +186,7 @@
 <!-- Same versions as player.phimapi.com -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/artplayer/5.4.0/artplayer.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <script>
 (function () {
   'use strict';
@@ -42,7 +213,10 @@
     setting: true,
     pip: true,
     flip: false,
-    lock: true,
+    // Lock button removed per request — was mobile-only anyway (see
+    // CSS note above) and this fully disables the plugin rather than
+    // just hiding it, so no leftover DOM/behavior.
+    lock: false,
     fastForward: true,
     playbackRate: true,
     aspectRatio: true,
@@ -67,6 +241,77 @@
         Default: 'Mặc định',
       },
     },
+    layers: [
+      {
+        name: 'kgp-logo',
+        html:
+          '<a id="kgp-logo-link" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);text-decoration:none;cursor:pointer;">' +
+          '<img src="/logo.png" alt="Không Gian Phim" style="width:20px;height:20px;border-radius:999px;object-fit:cover;" />' +
+          '<span style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;">Không Gian Phim</span>' +
+          '</a>',
+        style: {
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          zIndex: 30,
+          pointerEvents: 'auto',
+        },
+        click: function () {
+          postToParent({ action: 'navigateHome' });
+        },
+      },
+      {
+        // Mobile-only overlay: play/pause + ±10s seek, centered on the
+        // video itself. See the #kgp-center-controls CSS above for why
+        // — this is what lets the bottom icon row shrink enough for
+        // fullscreen to stop being pushed off-screen on narrow phones.
+        name: 'kgp-center-controls',
+        html:
+          '<div id="kgp-center-controls">' +
+            '<button type="button" class="kgp-seek-btn" aria-label="Tua lùi 10 giây" onclick="window.__kgpRewind(event)">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M4 18A12 12 0 1 0 16 6h-4V1L6 7l6 6V8h4A10 10 0 1 1 6 18Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>' +
+            '</button>' +
+            '<button type="button" id="kgp-center-play-btn" class="kgp-play-btn" aria-label="Phát / Dừng" onclick="window.__kgpTogglePlay(event)">' +
+              '<svg id="kgp-center-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>' +
+            '</button>' +
+            '<button type="button" class="kgp-seek-btn" aria-label="Tua tới 10 giây" onclick="window.__kgpForward(event)">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M26 18A10 10 0 1 1 16 8h4v5l6-6-6-6v5h-4a12 12 0 1 0 12 12Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>' +
+            '</button>' +
+          '</div>',
+        style: {
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 20,
+          pointerEvents: 'none',
+        },
+      },
+      {
+        // Unmute pill — bottom-left. Only shown while the muted-autoplay
+        // fallback is active AND the player controls are visible, so it
+        // follows the control bar: it fades out together with the controls
+        // and returns with them until the user has unmuted (then gone).
+        name: 'kgp-unmute',
+        html:
+          '<div id="kgp-unmute">' +
+            '<button type="button" class="kgp-unmute-btn" aria-label="Bật tiếng" onclick="window.__kgpUnmute(event)">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>' +
+              '<span>Bật tiếng</span>' +
+            '</button>' +
+          '</div>',
+        style: {
+          position: 'absolute',
+          left: '12px',
+          zIndex: 50,
+          pointerEvents: 'none',
+        },
+      },
+    ],
     controls: [
       {
         position: 'left',
@@ -170,6 +415,120 @@
   });
 
   // ===================================================================
+  // iOS FULLSCREEN FIX
+  //
+  // iOS Safari only has PARTIAL Fullscreen API support: it only honours
+  // fullscreen requests on <video> elements. When Artplayer fullscreens
+  // its player container (a <div> wrapping the <video>), iOS ignores the
+  // div and hands the video to the NATIVE fullscreen player instead,
+  // which renders no DOM at all — so the logo layer (and our center
+  // controls / unmute pill) vanish on iOS, while Android and desktop
+  // DOM-fullscreen the container and keep the layers visible.
+  //
+  // Fix: on iOS we never enter native fullscreen. The fullscreen button
+  // (and double-tap) is redirected to ask the PARENT page to
+  // "fake-fullscreen" the whole player via a fixed full-viewport overlay
+  // (the parent already does exactly this for its cinema mode). Inside
+  // that overlay the iframe scales up to fill the screen, so the
+  // in-player logo layer stays visible — matching Android / desktop.
+  // ===================================================================
+  var isIOS =
+    /(iPad|iPhone|iPod)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  var kgpFakeFullscreen = false;
+
+  function kgpSetFakeFullscreen(state) {
+    var next = !!state;
+    if (kgpFakeFullscreen === next) return;
+    kgpFakeFullscreen = next;
+    // Built-in fullscreen control flips its icon/tooltip on this event,
+    // and autoOrientation safely no-ops on iOS (no orientation lock API).
+    art.emit('fullscreen', kgpFakeFullscreen);
+  }
+
+  function kgpToggleFakeFullscreen() {
+    kgpSetFakeFullscreen(!kgpFakeFullscreen);
+    postToParent({ action: 'toggleFullscreen' });
+  }
+
+  if (isIOS) {
+    // Artplayer fullscreens `$player` via Element.requestFullscreen
+    // (standard path) or the <video>'s webkitEnterFullscreen (old-Safari
+    // fallback path). Patch BOTH entry points so every native-fullscreen
+    // attempt is redirected to our fake fullscreen flow instead. A
+    // resolved promise is returned so Artplayer's internal promise
+    // machinery (Mt.request) never hangs waiting for a fullscreenchange
+    // that will never fire.
+    var kgpRedirectFullscreen = function () {
+      kgpToggleFakeFullscreen();
+      return Promise.resolve();
+    };
+
+    var $playerRoot = art.template.$player;
+    if ($playerRoot) {
+      $playerRoot.requestFullscreen = kgpRedirectFullscreen;
+      $playerRoot.webkitRequestFullscreen = kgpRedirectFullscreen;
+    }
+
+    var $videoEl = art.template.$video;
+    if ($videoEl && $videoEl.webkitEnterFullscreen) {
+      $videoEl.webkitEnterFullscreen = kgpRedirectFullscreen;
+    }
+  }
+
+  // ===================================================================
+  // Center overlay controls (mobile only — see CSS at the top for why).
+  // Defined as plain window functions so the inline onclick= handlers in
+  // the layer's HTML string can reach them regardless of Artplayer's
+  // internal event-binding, and stopPropagation so tapping a button
+  // doesn't also trigger any handler on the elements underneath it.
+  // ===================================================================
+  window.__kgpRewind = function (e) {
+    if (e) e.stopPropagation();
+    art.seek = art.currentTime - 10;
+  };
+  window.__kgpForward = function (e) {
+    if (e) e.stopPropagation();
+    art.seek = art.currentTime + 10;
+  };
+  window.__kgpTogglePlay = function (e) {
+    if (e) e.stopPropagation();
+    // Use the raw video element state. `art.paused` does NOT exist in
+    // Artplayer 5.4.0 (only `art.playing` does) — it's undefined, which
+    // would make this always call pause() and break play/resume.
+    if (art.video.paused) {
+      art.play();
+    } else {
+      art.pause();
+    }
+  };
+
+  var KGP_PLAY_ICON = '<path fill="currentColor" d="M8 5v14l11-7z"/>';
+  var KGP_PAUSE_ICON = '<path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+
+  // Play/pause glyph on the center overlay. IMPORTANT: we deliberately do
+  // NOT sync on 'ready' / loading events, so the glyph is always the PLAY
+  // icon when the page first opens (no flicker between play/pause while
+  // the stream buffers). It only changes when real playback state
+  // changes, following the YouTube convention — the glyph previews the
+  // ACTION the button will perform next:
+  //   - while PLAYING  → show the PAUSE glyph (tap = pause),
+  //   - while PAUSED   → show the PLAY glyph (tap = resume).
+  function kgpSyncCenterIcon() {
+    var icon = document.getElementById('kgp-center-play-icon');
+    if (!icon) return;
+    var video = art.video;
+    icon.innerHTML = video && video.paused && !video.ended
+      ? KGP_PLAY_ICON
+      : KGP_PAUSE_ICON;
+  }
+
+  art.on('video:playing', kgpSyncCenterIcon);
+  art.on('video:pause', kgpSyncCenterIcon);
+  art.on('video:ended', kgpSyncCenterIcon);
+
+  // ===================================================================
   // BRIDGE: notify the parent window about player events so the
   // WatchPage can implement auto-next, progress tracking, etc.
   // ===================================================================
@@ -227,9 +586,113 @@
     if (e.data.action === 'play') {
       art.play();
     }
+    // Parent confirms fake-fullscreen state (it may exit via Esc, the
+    // exit pill, the backdrop, or its own cinema-mode toggle) — keep the
+    // fullscreen button icon in sync.
+    if (e.data.action === 'fullscreenState' && typeof e.data.state === 'boolean') {
+      kgpSetFakeFullscreen(e.data.state);
+    }
   });
 
   window.art = art;
+
+  // ===================================================================
+  // AUTOPLAY FALLBACK
+  //
+  // iOS Safari blocks sound-first autoplay inside iframes, so a
+  // `muted:false, autoplay:true` player just stays paused there (that's
+  // the bug). Strategy — exactly what the parent app asked for:
+  //   1. Try autoplay WITH sound first (works on Android / desktop).
+  //   2. If the browser rejects it, retry muted (always allowed) so the
+  //      video actually plays everywhere.
+  //   3. When we had to fall back to muted, show the "Bật tiếng" pill.
+  //      Tapping it is a user gesture, which is what unlocks unmuting.
+  // ===================================================================
+  var kgpFallbackDone = false;
+
+  function kgpShowUnmute() {
+    var el = document.getElementById('kgp-unmute');
+    if (el) el.classList.add('show');
+  }
+  function kgpHideUnmute() {
+    var el = document.getElementById('kgp-unmute');
+    if (el) el.classList.remove('show');
+  }
+
+  function kgpTryPlay(video) {
+    var p = null;
+    try {
+      p = video.play();
+    } catch (_) {
+      p = null;
+    }
+    if (p && typeof p.catch === 'function') p.catch(function () {});
+    return p;
+  }
+
+  // Tapped by the user → that gesture unlocks unmuted playback on iOS.
+  // Defined on window so the layer's inline onclick can reach it.
+  window.__kgpUnmute = function (e) {
+    if (e) e.stopPropagation();
+    try { art.muted = false; } catch (_) {}
+    kgpTryPlay(art.video);
+    kgpHideUnmute();
+  };
+
+  art.on('ready', function () {
+    // Give Artplayer's own autoplay attempt a moment to settle before
+    // we probe — too early and the stream may simply not be playing yet.
+    setTimeout(function () {
+      var video = art.video;
+      if (!video || kgpFallbackDone) return;
+
+      var p = null;
+      try {
+        p = video.play();
+      } catch (_) {
+        p = null;
+      }
+
+      if (p && typeof p.then === 'function') {
+        p.then(function () {
+          // Autoplay succeeded. If something already muted us (e.g.
+          // Artplayer's own muted fallback), surface the pill anyway.
+          if (video.muted) kgpShowUnmute();
+        }).catch(function () {
+          // Sound-first autoplay was blocked → retry muted + show pill.
+          // Guard: if the video actually started anyway (e.g. a spurious
+          // rejection on desktop/Android), do NOT mute it — sound
+          // autoplay is the primary behaviour there.
+          if (video && !video.paused && !video.ended) return;
+          kgpFallbackDone = true;
+          try { art.muted = true; } catch (_) {}
+          kgpTryPlay(video);
+          kgpShowUnmute();
+        });
+      } else {
+        // No Promise support (very old browsers) — check state directly.
+        setTimeout(function () {
+          if (video.paused) {
+            kgpFallbackDone = true;
+            try { art.muted = true; } catch (_) {}
+            kgpTryPlay(video);
+            kgpShowUnmute();
+          } else if (video.muted) {
+            kgpShowUnmute();
+          }
+        }, 300);
+      }
+    }, 250);
+  });
+
+  // If the user later unmutes through the player's own controls, drop
+  // the pill for good — it was a first-time fallback hint only.
+  art.on('video:playing', function () {
+    if (art.video && !art.video.muted) kgpHideUnmute();
+  });
+  art.on('video:volumechange', function () {
+    if (art.video && !art.video.muted) kgpHideUnmute();
+  });
 })();
 </script>
 </body>

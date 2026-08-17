@@ -15,17 +15,17 @@ interface PromoBannerProps {
 }
 
 const accentMap = {
-  red: 'from-red-900/80 via-red-900/40',
+  red: 'from-[#0f111a]/90 via-[#0f111a]/50',
   blue: 'from-blue-900/80 via-blue-900/40',
   purple: 'from-purple-900/80 via-purple-900/40',
   green: 'from-emerald-900/80 via-emerald-900/40',
 };
 
 const btnAccentMap = {
-  red: 'bg-red-600 hover:bg-red-500',
-  blue: 'bg-blue-600 hover:bg-blue-500',
-  purple: 'bg-purple-600 hover:bg-purple-500',
-  green: 'bg-emerald-600 hover:bg-emerald-500',
+  red: 'bg-[#ffd166] hover:bg-[#ffdf92] text-[#0f111a]',
+  blue: 'bg-blue-600 hover:bg-blue-500 text-white',
+  purple: 'bg-purple-600 hover:bg-purple-500 text-white',
+  green: 'bg-emerald-600 hover:bg-emerald-500 text-white',
 };
 
 /**
@@ -66,8 +66,8 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ movie, accent = 'red' }) => {
 
         {/* Gradient overlays */}
         <div className={`absolute inset-0 bg-gradient-to-r ${accentMap[accent]} to-transparent`} />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-transparent to-gray-950" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0f111a] via-[#0f111a]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f111a]/40 via-transparent to-[#0f111a]" />
 
         {/* Content */}
         <div className="absolute inset-0 flex items-end px-4 pb-6 sm:items-center sm:px-6 lg:px-8">
@@ -116,7 +116,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({ movie, accent = 'red' }) => {
             <div className="flex items-center gap-3 pt-1">
               <Link
                 to={`${ROUTES.WATCH}/${movie.slug}`}
-                className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-colors ${btnAccentMap[accent]}`}
+                className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold shadow-lg transition-colors ${btnAccentMap[accent]}`}
               >
                 <FaPlay className="h-3 w-3" />
                 {t('hero.watchNow')}

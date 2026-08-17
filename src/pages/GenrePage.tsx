@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, Navigate } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { FaFilm, FaTheaterMasks, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaFilm, FaTheaterMasks } from 'react-icons/fa';
 
 import { MovieGrid, SpotlightGrid, CategoryBanner } from '@/components/movie';
 import { Pagination, GridSkeleton } from '@/components/common';
@@ -11,7 +11,6 @@ import {
   useGenres,
   useMoviesInGenre,
   useMoviesBySlug,
-  useContextualSearch,
 } from '@/hooks';
 import { ROUTES } from '@/constants';
 
@@ -125,7 +124,6 @@ function GenreDetailView({ slug }: { slug: string }) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [inlineSearch, setInlineSearch] = useState('');
   const { data: genres = [] } = useGenres();
 
   const activeType: MovieTypeTab =
@@ -146,37 +144,12 @@ function GenreDetailView({ slug }: { slug: string }) {
   const { data, isLoading } =
     activeType === 'all' ? allQuery : typedQuery;
 
-  // Contextual inline search: hits phimapi's search endpoint then
-  // client-filters by the current genre (and, if applicable, the type
-  // tab). Guarantees users can find any matching title, not just those
-  // in the currently-loaded page.
-  const searchCtx = useMemo(
-    () => ({
-      categorySlug: slug,
-      type:
-        activeType === 'single'
-          ? 'single'
-          : activeType === 'series'
-            ? 'series'
-            : undefined,
-    }),
-    [slug, activeType],
-  );
-  const {
-    active: isSearching,
-    isLoading: isSearchLoading,
-    results: searchResults,
-  } = useContextualSearch(inlineSearch, searchCtx);
-
   const genreName = useMemo(() => {
     const found = genres.find((g) => g.slug === slug);
     return found?.name ?? slug;
   }, [genres, slug]);
 
-  // Display list: search mode → results from contextual search;
-  // browsing mode → current page of the paginated listing.
-  const displayMovies = isSearching ? searchResults : (data?.items ?? []);
-  const displayLoading = isSearching ? isSearchLoading : isLoading;
+  const displayMovies = data?.items ?? [];
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
@@ -207,13 +180,21 @@ function GenreDetailView({ slug }: { slug: string }) {
       <CategoryBanner
         eyebrow={t('nav.genres')}
         title={genreName}
+        description={`Tuyển tập phim ${genreName} đặc sắc nhất — chọn lọc kỹ càng, Vietsub, thuyết minh, lồng tiếng, cập nhật liên tục để bạn xem online miễn phí chất lượng cao.`}
         totalItems={data?.pagination?.totalItems}
-        backdropUrl={displayMovies[0]?.thumb_url ?? displayMovies[0]?.poster_url}
+        backdropUrl={
+          // Dùng phim thứ 2 làm ảnh nền banner, không dùng phim đầu tiên —
+          // phim đầu tiên là "hero" của khối SpotlightGrid to bên dưới, dùng
+          // chung ảnh sẽ bị trùng thumbnail giữa banner và khối đó.
+          displayMovies[1]?.thumb_url ??
+          displayMovies[1]?.poster_url ??
+          displayMovies[0]?.thumb_url ??
+          displayMovies[0]?.poster_url
+        }
         icon={FaTheaterMasks}
       />
 
-      {/* Type tabs + inline search on the same row (stacks on mobile).
-          Type tabs hidden for synthetic slugs (Hoạt Hình / TV Shows) where
+      {/* Type tabs. Hidden for synthetic slugs (Hoạt Hình / TV Shows) where
           the "type" filter isn't meaningful — the whole list IS one type. */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex gap-1 rounded-lg border border-gray-800 bg-gray-900 p-1">
@@ -232,42 +213,13 @@ function GenreDetailView({ slug }: { slug: string }) {
             </button>
           ))}
         </div>
-
-        {/* Inline search — filters items in the current page client-side */}
-        <div className="relative w-full sm:max-w-xs">
-          <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            value={inlineSearch}
-            onChange={(e) => setInlineSearch(e.target.value)}
-            placeholder={t(
-              'filter.searchInResults',
-              'Tìm trong danh sách...',
-            )}
-            className="w-full rounded-lg border border-gray-800 bg-gray-900 py-2 pl-9 pr-9 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-          />
-          {inlineSearch && (
-            <button
-              type="button"
-              onClick={() => setInlineSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-500 hover:text-white"
-              aria-label={t('search.clear')}
-            >
-              <FaTimes className="h-3 w-3" />
-            </button>
-          )}
-        </div>
       </div>
 
-      {displayLoading ? (
+      {isLoading ? (
         <GridSkeleton />
-      ) : displayMovies.length === 0 && isSearching ? (
-        <p className="py-16 text-center text-gray-500">
-          {t('search.noResults')}
-        </p>
       ) : (
         <>
-          {!isSearching && page === 1 && displayMovies.length >= 5 && (
+          {page === 1 && displayMovies.length >= 5 && (
             <div className="mb-8">
               <SpotlightGrid
                 title={genreName}
@@ -277,7 +229,7 @@ function GenreDetailView({ slug }: { slug: string }) {
           )}
           <MovieGrid
             movies={
-              !isSearching && page === 1 && displayMovies.length >= 5
+              page === 1 && displayMovies.length >= 5
                 ? displayMovies.slice(5, 23)
                 : displayMovies
             }
@@ -285,7 +237,7 @@ function GenreDetailView({ slug }: { slug: string }) {
         </>
       )}
 
-      {!isSearching && data?.pagination && data.pagination.totalPages > 1 && (
+      {data?.pagination && data.pagination.totalPages > 1 && (
         <Pagination
           currentPage={data.pagination.currentPage}
           totalPages={data.pagination.totalPages}

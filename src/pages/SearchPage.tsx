@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import {
   FaTrash,
   FaChevronDown,
   FaChevronUp,
-  FaFilter,
+  FaSlidersH,
   FaGlobe,
   FaTags,
   FaCalendarAlt,
@@ -60,23 +60,22 @@ function FilterSelect({
 }) {
   return (
     <div className="flex-1 min-w-[140px]">
-      <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-        {icon}
+      <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gray-800 text-red-400">
+          {icon}
+        </span>
         {label}
       </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-700 bg-gray-800/80 px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 appearance-none cursor-pointer"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M3 5l3 3 3-3'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right 10px center',
-          paddingRight: '32px',
-        }}
-      >
-        {children}
-      </select>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full cursor-pointer appearance-none rounded-xl border border-gray-800 bg-gray-900/70 px-3 py-2.5 pr-9 text-sm text-gray-200 outline-none transition-all hover:border-gray-600 focus:border-red-500/60 focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20"
+        >
+          {children}
+        </select>
+        <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-500" />
+      </div>
     </div>
   );
 }
@@ -91,15 +90,19 @@ export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const qParam = searchParams.get('q') ?? '';
+  const countryParam = searchParams.get('country') ?? '';
+  const categoryParam = searchParams.get('category') ?? '';
+  const yearParam = searchParams.get('year') ?? '';
+  const sortParam = searchParams.get('sort') ?? '';
 
   /* ---- Local state ---- */
   const [inputValue, setInputValue] = useState(qParam);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [country, setCountry] = useState('');
-  const [category, setCategory] = useState('');
-  const [year, setYear] = useState('');
-  const [sortField, setSortField] = useState('');
+  const [country, setCountry] = useState(countryParam);
+  const [category, setCategory] = useState(categoryParam);
+  const [year, setYear] = useState(yearParam);
+  const [sortField, setSortField] = useState(sortParam);
   const debouncedKeyword = useDebounce(inputValue, DEBOUNCE_DELAY);
 
   /* ---- Stores ---- */
@@ -116,34 +119,42 @@ export default function SearchPage() {
   const genres = Array.isArray(genresData) ? genresData : [];
   const countries = Array.isArray(countriesData) ? countriesData : [];
 
-  /* ---- Fetch results ---- */
-  const { data, isLoading } = useFilteredSearch({
-    keyword: debouncedKeyword,
-    country: country || undefined,
-    category: category || undefined,
-    year: year || undefined,
-    sort_field: sortField || undefined,
-    sort_type: 'desc',
-  });
+  /* ---- URL helpers ----
+     All filter values + the keyword live in the URL (?q=&country=&category=
+     &year=&sort=) so they survive refreshes, back/forward and navigation
+     away & back — and, crucially, updating the keyword never wipes the
+     filters (the old code called setSearchParams({ q }) which dropped every
+     other param, so re-searching silently lost the active filters). */
+  const updateUrl = useCallback(
+    (patch: Record<string, string | null>) => {
+      const merged = {
+        q: qParam,
+        country,
+        category,
+        year,
+        sort: sortField,
+        ...patch,
+      };
+      const next = new URLSearchParams();
+      Object.entries(merged).forEach(([k, v]) => {
+        if (v) next.set(k, v);
+      });
+      setSearchParams(next, { replace: true });
+    },
+    [qParam, country, category, year, sortField, setSearchParams],
+  );
 
-  const movies = data?.items ?? [];
-  const hasSearched = debouncedKeyword.trim().length > 0;
-  const showNoResults = hasSearched && !isLoading && movies.length === 0;
-  const showRecentSearches = !hasSearched && recentSearches.length > 0;
-  const hasActiveFilters = !!(country || category || year || sortField);
-
-  const visibleMovies = movies.slice(0, visibleCount);
-  const hasMore = movies.length > visibleCount;
-
-  /* Auto-open filters when coming from URL with filter params */
+  /* Sync filter state whenever the URL changes from outside (back/forward,
+     a link from a genre/country page, etc.). */
   useEffect(() => {
-    const c = searchParams.get('country');
-    const cat = searchParams.get('category');
-    const y = searchParams.get('year');
-    if (c) { setCountry(c); setFiltersOpen(true); }
-    if (cat) { setCategory(cat); setFiltersOpen(true); }
-    if (y) { setYear(y); setFiltersOpen(true); }
-  }, []);
+    setCountry(countryParam);
+    setCategory(categoryParam);
+    setYear(yearParam);
+    setSortField(sortParam);
+    if (countryParam || categoryParam || yearParam || sortParam) {
+      setFiltersOpen(true);
+    }
+  }, [countryParam, categoryParam, yearParam, sortParam]);
 
   /* ---- URL → input sync ---- */
   useEffect(() => {
@@ -162,18 +173,55 @@ export default function SearchPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [debouncedKeyword, country, category, year, sortField]);
 
+  /* ---- Fetch results ---- */
+  const { data, isLoading } = useFilteredSearch({
+    keyword: debouncedKeyword,
+    country: country || undefined,
+    category: category || undefined,
+    year: year || undefined,
+    sort_field: sortField || undefined,
+    sort_type: 'desc',
+  });
+
+  const movies = data?.items ?? [];
+  const hasSearched = debouncedKeyword.trim().length > 0;
+  const showNoResults = hasSearched && !isLoading && movies.length === 0;
+  const showRecentSearches = !hasSearched && recentSearches.length > 0;
+  const hasActiveFilters = !!(country || category || year || sortField);
+  const activeFilterCount = [country, category, year, sortField].filter(Boolean).length;
+
+  const visibleMovies = movies.slice(0, visibleCount);
+  const hasMore = movies.length > visibleCount;
+
+  /* Active filters as removable chips */
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+    if (country) {
+      const name = countries.find((c) => (c as { slug?: string }).slug === country)?.name;
+      chips.push({ key: 'country', label: String(name ?? country), clear: () => setCountry('') });
+    }
+    if (category) {
+      const name = genres.find((g) => (g as { slug?: string }).slug === category)?.name;
+      chips.push({ key: 'category', label: String(name ?? category), clear: () => setCategory('') });
+    }
+    if (year) {
+      chips.push({ key: 'year', label: year, clear: () => setYear('') });
+    }
+    if (sortField) {
+      const label = SORT_OPTIONS.find((s) => s.value === sortField)?.label;
+      chips.push({ key: 'sort', label: label ?? sortField, clear: () => setSortField('') });
+    }
+    return chips;
+  }, [country, category, year, sortField, countries, genres]);
+
   /* ---- Handlers ---- */
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setInputValue(val);
-      if (val.trim()) {
-        setSearchParams({ q: val.trim() }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
+      updateUrl({ q: val.trim() || null });
     },
-    [setSearchParams],
+    [updateUrl],
   );
 
   const handleSubmit = useCallback(
@@ -190,17 +238,17 @@ export default function SearchPage() {
 
   const handleClear = useCallback(() => {
     setInputValue('');
-    setSearchParams({}, { replace: true });
+    updateUrl({ q: null });
     inputRef.current?.focus();
-  }, [setSearchParams]);
+  }, [updateUrl]);
 
   const handleRecentClick = useCallback(
     (term: string) => {
       setInputValue(term);
-      setSearchParams({ q: term }, { replace: true });
+      updateUrl({ q: term });
       addRecentSearch(term);
     },
-    [addRecentSearch, setSearchParams],
+    [updateUrl, addRecentSearch],
   );
 
   const handleLoadMore = useCallback(() => {
@@ -213,6 +261,18 @@ export default function SearchPage() {
     setYear('');
     setSortField('');
   }, []);
+
+  const applyFilter = useCallback(
+    (key: string, value: string) => {
+      const patch: Record<string, string | null> = { [key]: value || null };
+      if (key === 'country') setCountry(value);
+      if (key === 'category') setCategory(value);
+      if (key === 'year') setYear(value);
+      if (key === 'sort') setSortField(value);
+      updateUrl(patch);
+    },
+    [updateUrl],
+  );
 
   return (
     <>
@@ -231,24 +291,32 @@ export default function SearchPage() {
         className="min-h-screen bg-gray-950 text-white"
       >
         <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
-          {/* Search header */}
+          {/* ---- Search header (centered) ---- */}
           <div className="mx-auto max-w-2xl">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-600/30">
+                <FaSearch className="h-4 w-4 text-white" />
+              </span>
+              <h1 className="text-xl font-bold tracking-tight">{t('seo.searchTitle')}</h1>
+            </div>
+
             <form onSubmit={handleSubmit}>
-              <div className="relative">
-                <FaSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+              <div className="group relative">
+                <FaSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 transition-colors group-focus-within:text-red-400" />
                 <input
                   ref={inputRef}
                   type="text"
                   value={inputValue}
                   onChange={handleInputChange}
                   placeholder={t('search.placeholder')}
-                  className="w-full rounded-xl border border-gray-800 bg-gray-900/80 py-4 pl-12 pr-12 text-lg text-white placeholder-gray-500 outline-none backdrop-blur-sm transition-colors focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20"
+                  className="w-full rounded-xl border border-gray-800 bg-gray-900/80 py-3 pl-11 pr-11 text-base text-white placeholder-gray-500 shadow-lg shadow-black/20 outline-none backdrop-blur-sm transition-all focus:border-red-500/60 focus:ring-4 focus:ring-red-500/15"
                 />
                 {inputValue && (
                   <button
                     type="button"
                     onClick={handleClear}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-500 transition-colors hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-500 transition-colors hover:text-white"
+                    aria-label={t('common.remove')}
                   >
                     <FaTimes className="h-4 w-4" />
                   </button>
@@ -261,13 +329,13 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => setFiltersOpen((v) => !v)}
-                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-white"
               >
-                <FaFilter className="h-3 w-3" />
-                {filtersOpen ? 'Thu gọn bộ lọc' : 'Mở rộng bộ lọc'}
-                {hasActiveFilters && (
+                <FaSlidersH className="h-3 w-3 text-red-400" />
+                {t('filter.title', 'Bộ lọc')}
+                {activeFilterCount > 0 && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                    {[country, category, year, sortField].filter(Boolean).length}
+                    {activeFilterCount}
                   </span>
                 )}
                 {filtersOpen ? (
@@ -279,7 +347,7 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* Filter panel */}
+          {/* ---- Filter panel (collapsible) ---- */}
           <AnimatePresence>
             {filtersOpen && (
               <motion.div
@@ -289,13 +357,13 @@ export default function SearchPage() {
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden"
               >
-                <div className="mx-auto mt-4 max-w-3xl rounded-2xl border border-gray-800 bg-gray-900/60 p-5">
+                <div className="mx-auto mt-4 max-w-3xl rounded-2xl border border-gray-800 bg-gradient-to-b from-gray-900/80 to-gray-900/40 p-5 backdrop-blur-sm">
                   <div className="flex flex-wrap gap-4">
                     <FilterSelect
                       icon={<FaGlobe className="h-3 w-3" />}
                       label={t('filter.country')}
                       value={country}
-                      onChange={setCountry}
+                      onChange={(v) => applyFilter('country', v)}
                     >
                       <option value="">{t('filter.allCountries')}</option>
                       {(Array.isArray(countries) ? countries : []).map((c: any) => (
@@ -309,7 +377,7 @@ export default function SearchPage() {
                       icon={<FaTags className="h-3 w-3" />}
                       label={t('filter.genre')}
                       value={category}
-                      onChange={setCategory}
+                      onChange={(v) => applyFilter('category', v)}
                     >
                       <option value="">{t('filter.allGenres')}</option>
                       {(Array.isArray(genres) ? genres : []).map((g: any) => (
@@ -323,7 +391,7 @@ export default function SearchPage() {
                       icon={<FaCalendarAlt className="h-3 w-3" />}
                       label={t('filter.year')}
                       value={year}
-                      onChange={setYear}
+                      onChange={(v) => applyFilter('year', v)}
                     >
                       <option value="">{t('filter.allYears')}</option>
                       {YEARS.map((y) => (
@@ -337,7 +405,7 @@ export default function SearchPage() {
                       icon={<FaSortAmountDown className="h-3 w-3" />}
                       label={t('filter.sortBy')}
                       value={sortField}
-                      onChange={setSortField}
+                      onChange={(v) => applyFilter('sort', v)}
                     >
                       <option value="">{t('filter.defaultSort')}</option>
                       {SORT_OPTIONS.map((s) => (
@@ -348,12 +416,30 @@ export default function SearchPage() {
                     </FilterSelect>
                   </div>
 
-                  {hasActiveFilters && (
-                    <div className="mt-4 flex justify-end">
+                  {activeFilterChips.length > 0 && (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-800 pt-4">
+                      <div className="flex flex-wrap gap-2">
+                        {activeFilterChips.map((chip) => (
+                          <span
+                            key={chip.key}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-red-600/30 bg-red-600/15 px-2.5 py-1 text-xs text-red-300"
+                          >
+                            {chip.label}
+                            <button
+                              type="button"
+                              onClick={chip.clear}
+                              className="text-red-400 transition-colors hover:text-white"
+                              aria-label={`${t('common.remove')} ${chip.label}`}
+                            >
+                              <FaTimes className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        className="text-xs text-gray-400 transition-colors hover:text-red-400"
+                        className="text-xs font-medium text-gray-400 transition-colors hover:text-red-400"
                       >
                         {t('filter.reset')}
                       </button>
@@ -364,7 +450,7 @@ export default function SearchPage() {
             )}
           </AnimatePresence>
 
-          {/* Recent searches */}
+          {/* ---- Recent searches ---- */}
           <AnimatePresence>
             {showRecentSearches && (
               <motion.div
@@ -420,17 +506,12 @@ export default function SearchPage() {
             )}
           </AnimatePresence>
 
-          {/* Results section */}
+          {/* ---- Results ---- */}
           <div className="mt-8">
             {hasSearched && (
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-gray-200">
                   {t('search.results')}
-                  {hasActiveFilters && (
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      (có bộ lọc)
-                    </span>
-                  )}
                 </h2>
                 {movies.length > 0 && (
                   <span className="text-sm text-gray-500">
@@ -458,7 +539,6 @@ export default function SearchPage() {
               <>
                 <MovieGrid movies={visibleMovies} />
 
-                {/* Load more button */}
                 {hasMore && (
                   <div className="mt-8 flex justify-center">
                     <button

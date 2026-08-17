@@ -1,172 +1,127 @@
 import { Link } from "react-router-dom";
 import {
-  FaFacebook,
+  FaFacebookF,
   FaTiktok,
-  FaEnvelope,
-  // FaPhone,
-  // FaHeart,
+  FaHeart,
 } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import Logo from "@/components/common/Logo";
 import ZaloIcon from "@/components/common/icons/ZaloIcon";
-// import { ROUTES } from "@/constants";
+import { useCatalogStats } from "@/hooks";
+import { ROUTES } from "@/constants";
 
 interface FooterLink {
-  labelKey: string;
+  label: string;
   path: string;
 }
 
-/** Quick links — every route we don't own yet points to `#` so the user
- *  never lands on a 404. Real routes point to real pages (donate). */
-const quickLinks: FooterLink[] = [
-  { labelKey: "footer.about", path: "#" },
-  { labelKey: "footer.contact", path: "#" },
-  { labelKey: "footer.privacy", path: "#" },
-  { labelKey: "footer.terms", path: "#" },
-  { labelKey: "footer.donate", path: "/donate" },
+const footerLinks: FooterLink[] = [
+  { label: "Hỏi-Đáp", path: "#" },
+  { label: "Chính sách bảo mật", path: "#" },
+  { label: "Điều khoản sử dụng", path: "#" },
+  { label: "Giới thiệu", path: "#" },
+  { label: "Liên hệ", path: "#" },
+  { label: "Donate", path: ROUTES.DONATE },
 ];
 
 const socialLinks = [
-  {
-    icon: FaFacebook,
-    href: "https://www.facebook.com/",
-    label: "Facebook",
-    hoverBg: "hover:bg-[#1877f2]",
-  },
-  {
-    icon: FaTiktok,
-    href: "https://www.tiktok.com/",
-    label: "TikTok",
-    hoverBg: "hover:bg-black",
-  },
-  {
-    icon: ZaloIcon,
-    href: "https://zalo.me/",
-    label: "Zalo",
-    hoverBg: "hover:bg-[#0068ff]",
-  },
+  { icon: FaFacebookF, href: "https://www.facebook.com/", label: "Facebook" },
+  { icon: FaTiktok, href: "https://www.tiktok.com/@khonggianphim.online", label: "TikTok" },
+  { icon: ZaloIcon, href: "https://zalo.me/", label: "Zalo" },
 ] as const;
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
+  const { data: catalogStats } = useCatalogStats();
+
+  const totalMovies = catalogStats?.totalEstimated ?? 0;
+  const totalLabel = totalMovies > 0 ? totalMovies.toLocaleString("vi-VN") : "—";
 
   return (
-    <footer className="always-dark border-t border-gray-800 bg-[#111] text-gray-300">
-      <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Column 1: Brand */}
-          <div className="space-y-4">
-            <Logo size="md" />
-            <p className="max-w-xs text-sm leading-relaxed text-gray-400">
-              {t("footer.description")}
-            </p>
+    <footer className="always-dark bg-[#0a0a0f] border-t border-white/5 mt-16 pb-12 w-full text-gray-300">
+      <div className="max-w-[1400px] mx-auto px-4 pt-10">
+        {/* Badges row */}
+        <div className="mb-10 flex flex-wrap items-center gap-3 text-left">
+          <div className="inline-flex items-center gap-2 bg-[#8c171e] text-white px-4 py-2 rounded-full text-sm font-medium shadow-md">
+            <span className="text-[15px] leading-none">🇻🇳</span>
+            <span>Hoàng Sa &amp; Trường Sa là của Việt Nam</span>
           </div>
-
-          {/* Column 2: Quick Links */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-200">
-              {t("footer.quickLinks")}
-            </h3>
-            <ul className="space-y-2">
-              {quickLinks.map((link) => (
-                <li key={link.labelKey}>
-                  {link.path.startsWith("#") ? (
-                    <a
-                      href={link.path}
-                      className="text-sm text-gray-400 transition-colors duration-200 hover:text-red-500"
-                    >
-                      {t(link.labelKey)}
-                    </a>
-                  ) : (
-                    <Link
-                      to={link.path}
-                      className="text-sm text-gray-400 transition-colors duration-200 hover:text-red-500"
-                    >
-                      {t(link.labelKey)}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 3: Social */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-200">
-              {t("footer.followUs")}
-            </h3>
-            <div className="flex gap-3">
-              {socialLinks.map(({ icon: Icon, href, label, hoverBg }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className={`flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 text-gray-400 transition-all duration-200 ${hoverBg} hover:text-white`}
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
-            </div>
-            <p className="mt-4 text-sm text-gray-500">
-              {t("footer.socialTagline")}
-            </p>
-          </div>
-
-          {/* Column 4: Contact */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-200">
-              {t("footer.contact")}
-            </h3>
-            <ul className="space-y-2.5 text-sm text-gray-400">
-              <li>
-                <a
-                  href="mailto:pmquang05112003@gmail.com"
-                  className="flex items-center gap-2 transition-colors hover:text-red-500"
-                >
-                  <FaEnvelope className="h-3.5 w-3.5 shrink-0" />
-                  pmquang05112003@gmail.com
-                </a>
-              </li>
-              {/* <li>
-                <a
-                  href="tel:+84346991600"
-                  className="flex items-center gap-2 transition-colors hover:text-red-500"
-                >
-                  <FaPhone className="h-3.5 w-3.5 shrink-0" />
-                  0346991600
-                </a>
-              </li> */}
-              {/* <li>
-                <Link
-                  to={ROUTES.DONATE}
-                  className="mt-1 inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-700"
-                >
-                  <FaHeart className="h-3 w-3" />
-                  {t("footer.donateCta", "Ủng hộ Không Gian Phim")}
-                </Link>
-              </li> */}
-            </ul>
+          <div className="inline-flex items-center gap-2 bg-[#12121a] border border-white/5 text-white/80 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>
+              Tổng số phim:{" "}
+              <strong className="text-white font-semibold">{totalLabel}</strong>
+            </span>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-10 border-t border-gray-800 pt-6 text-center">
-          <p className="text-sm text-gray-500">
-            &copy; {currentYear} Không Gian Phim. {t("footer.rights")}
+        {/* Logo + socials */}
+        <div className="flex flex-col md:flex-row md:items-center pt-2 pb-6 gap-8 justify-between">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="inline-block shrink-0 mx-auto md:mx-0">
+              <Logo size="md" animated={false} />
+            </div>
+            <div className="hidden md:block w-px h-10 bg-white/10" />
+          </div>
+
+          <div className="flex flex-nowrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 overflow-x-auto overflow-y-hidden w-full md:w-auto pb-2 md:pb-0 shrink-0">
+            {socialLinks.map(({ icon: Icon, href, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="w-10 h-10 rounded-full bg-[#12121a] flex items-center justify-center text-white/80 hover:bg-[#1c1c28] transition-colors"
+              >
+                <Icon className="h-[18px] w-[18px] opacity-80 hover:opacity-100" />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Link rows */}
+        <div className="flex flex-wrap items-center gap-6 mt-8 mb-6 justify-start">
+          {footerLinks.map((link) =>
+            link.path.startsWith("#") ? (
+              <a
+                key={link.label}
+                href={link.path}
+                className="text-[15px] font-medium text-white/90 hover:text-yellow-400 transition-colors"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.label}
+                to={link.path}
+                className="text-[15px] font-medium text-white/90 hover:text-yellow-400 transition-colors"
+              >
+                {link.label}
+              </Link>
+            ),
+          )}
+        </div>
+
+        {/* Description */}
+        <div className="mt-4 max-w-5xl text-left">
+          <p className="text-[14px] leading-[1.8] text-white/60 max-w-[85ch]">
+            {t("footer.description")}
           </p>
-          <p className="mt-2 text-sm text-gray-600">
-            Website được phát triển bởi{' '}
-            <a
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-red-500 hover:text-red-400 transition-colors"
-            >
-              Phạm Minh Quang
-            </a>
+        </div>
+
+        {/* Copyright */}
+        <div className="mt-6 pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-left">
+          <p className="text-[14px] text-white/80">
+            © {currentYear} Không Gian Phim
+          </p>
+          <p className="text-[14px] text-white/60">
+            Tổng số phim:{" "}
+            <span className="text-yellow-400 font-semibold">{totalLabel}</span>
+            <span className="ml-2">
+              <FaHeart className="h-3 w-3 inline text-[#ffd166]" />
+            </span>
           </p>
         </div>
       </div>

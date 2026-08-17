@@ -60,7 +60,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
                   onClick={() => setActiveServer(ep.server_name)}
                   className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'bg-red-600 text-white'
+                      ? 'bg-[#ffd166] text-[#0f111a]'
                       : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
                   }`}
                 >
@@ -101,7 +101,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
                 onClick={() => onSelect(activeServer, ep)}
                 className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors text-center truncate ${
                   isCurrent
-                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+                    ? 'bg-[#ffd166] text-[#0f111a] shadow-lg shadow-[#ffd166]/20'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
                 title={ep.name}

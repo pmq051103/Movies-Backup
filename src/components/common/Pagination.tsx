@@ -68,7 +68,7 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalPages <= 1) return null;
 
   const baseClasses =
-    'min-w-[40px] h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500';
+    'min-w-[40px] h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]';
 
   return (
     <nav
@@ -82,8 +82,8 @@ const Pagination: React.FC<PaginationProps> = ({
         disabled={currentPage <= 1}
         className={`${baseClasses} ${
           currentPage <= 1
-            ? 'bg-gray-800 text-gray-600 opacity-50 cursor-not-allowed'
-            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+            ? 'bg-white/5 text-gray-600 opacity-50 cursor-not-allowed'
+            : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
         }`}
         aria-label={t('pagination.previous')}
       >
@@ -114,8 +114,8 @@ const Pagination: React.FC<PaginationProps> = ({
             disabled={isCurrent}
             className={`${baseClasses} ${
               isCurrent
-                ? 'bg-red-600 text-white cursor-default'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                ? 'bg-[#ffd166] text-[#0f111a] cursor-default'
+                : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
             }`}
             aria-label={t('pagination.goToPage', { page })}
             aria-current={isCurrent ? 'page' : undefined}
@@ -132,8 +132,8 @@ const Pagination: React.FC<PaginationProps> = ({
         disabled={currentPage >= totalPages}
         className={`${baseClasses} ${
           currentPage >= totalPages
-            ? 'bg-gray-800 text-gray-600 opacity-50 cursor-not-allowed'
-            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+            ? 'bg-white/5 text-gray-600 opacity-50 cursor-not-allowed'
+            : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
         }`}
         aria-label={t('pagination.next')}
       >

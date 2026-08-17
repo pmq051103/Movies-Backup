@@ -13,7 +13,9 @@ export async function getTVShows(
 export async function getAnime(
   params?: FilterParams,
 ): Promise<APIListResponse<MovieListItem>> {
-  return apiGet<APIListResponse<MovieListItem>>(API_ENDPOINTS.LIST_BY_SLUG('hoathinh'), {
+  // Upstream serves hoạt hình at /danh-sach/hoat-hinh (with a dash) —
+  // /danh-sach/hoathinh 404s.
+  return apiGet<APIListResponse<MovieListItem>>(API_ENDPOINTS.LIST_BY_SLUG('hoat-hinh'), {
     params,
   });
 }

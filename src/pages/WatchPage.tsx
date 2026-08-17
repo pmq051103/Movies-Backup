@@ -15,10 +15,11 @@ import {
 
 import { EpisodeList, MovieRow } from '@/components/movie';
 import { ROUTES } from '@/constants';
-import { useMovieDetail, useMoviesInGenre } from '@/hooks';
+import { useMovieDetail, useMoviesInGenre, useMoviesBySlug, useSearchMovies } from '@/hooks';
 import { usePlayerStore, useHistoryStore } from '@/store';
 import { getMoviePoster } from '@/utils';
-import type { Episode } from '@/types';
+import { normalizeVi } from '@/utils/searchRank';
+import type { Episode, MovieListItem } from '@/types';
 
 /* ------------------------------------------------------------------ */
 /* Animation variants                                                  */
@@ -62,21 +63,104 @@ function resolveIndices(
 /* Related movies — "Bạn cũng có thể thích"                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Pulls a "franchise" search keyword out of a movie title, e.g.
+ * "Thám Tử Lừng Danh Conan 28: Dư Ảnh Của Độc Nhân" -> "Thám Tử Lừng
+ * Danh Conan", "Lật Mặt 7: Một Điều Ước" -> "Lật Mặt". Only returns a
+ * value when something was actually stripped (a subtitle, a sequel
+ * number, or a "Phần"/"Tập" marker) — a bare one-off title like "Mai"
+ * is left alone so we don't fire off a noisy single-word keyword
+ * search that would just surface unrelated movies that happen to share
+ * a common word.
+ */
+function extractFranchiseKeyword(name?: string): string | undefined {
+  if (!name) return undefined;
+  const trimmed = name.trim();
+  const base = trimmed
+    .split(/[:\-–—]/)[0]
+    .replace(/\s+(phần|tập)\s+[ivxlcdm\d]+\s*$/i, '')
+    .replace(/\s+\d+\s*$/, '')
+    .trim();
+
+  if (!base || base.length < 4) return undefined;
+  if (normalizeVi(base) === normalizeVi(trimmed)) return undefined;
+  return base;
+}
+
+function dedupeBySlugCapped(items: MovieListItem[], cap: number): MovieListItem[] {
+  const seen = new Set<string>();
+  const out: MovieListItem[] = [];
+  for (const m of items) {
+    if (!m?.slug || seen.has(m.slug) || out.length >= cap) continue;
+    seen.add(m.slug);
+    out.push(m);
+  }
+  return out;
+}
+
 function RelatedMovies({
+  name,
   categorySlug,
+  countrySlug,
+  isChieuRap,
   currentSlug,
 }: {
+  name?: string;
   categorySlug?: string;
+  countrySlug?: string;
+  isChieuRap?: boolean;
   currentSlug?: string;
 }) {
   const { t } = useTranslation();
-  const { data } = useMoviesInGenre(categorySlug, { page: 1 });
 
-  const related = (data?.items ?? [])
-    .filter((m) => m.slug !== currentSlug)
-    .slice(0, 12);
+  // Tier 1: same franchise/series — e.g. watching a Conan movie surfaces
+  // other Conan movies, watching "Lật Mặt 7" surfaces other "Lật Mặt"
+  // entries. Keyword search, then require the result's own title to
+  // still start with the franchise keyword so unrelated partial-word
+  // matches from the search API get filtered back out.
+  const franchiseKeyword = extractFranchiseKeyword(name);
+  const { data: franchiseData } = useSearchMovies({
+    keyword: franchiseKeyword ?? '',
+    limit: 24,
+  });
+  const normalizedFranchiseKeyword = franchiseKeyword ? normalizeVi(franchiseKeyword) : '';
+  const franchiseMatches = (franchiseData?.items ?? []).filter(
+    (m) =>
+      m.slug !== currentSlug &&
+      normalizeVi(m.name ?? '').startsWith(normalizedFranchiseKeyword),
+  );
 
-  if (!categorySlug || related.length === 0) return null;
+  // Tier 2: same "phim chiếu rạp" (cinema release) + same country — e.g.
+  // watching a Vietnamese cinema release surfaces other Vietnamese
+  // cinema releases instead of generic same-genre picks.
+  const { data: chieuRapData } = useMoviesBySlug(
+    isChieuRap ? 'phim-chieu-rap' : undefined,
+    { page: 1 },
+  );
+  const chieuRapMatches = (chieuRapData?.items ?? []).filter((m) => {
+    if (m.slug === currentSlug) return false;
+    if (!countrySlug) return true;
+    const itemCountries = (m as unknown as { country?: Array<{ slug: string }> }).country;
+    return Array.isArray(itemCountries)
+      ? itemCountries.some((c) => c?.slug === countrySlug)
+      : true;
+  });
+
+  // Tier 3 (fallback): same genre, narrowed by country when we have one
+  // — always fetched so there's something to fill the row with once
+  // tiers 1-2 run dry.
+  const { data: genreData } = useMoviesInGenre(categorySlug, {
+    page: 1,
+    country: countrySlug,
+  });
+  const genreMatches = (genreData?.items ?? []).filter((m) => m.slug !== currentSlug);
+
+  const related = dedupeBySlugCapped(
+    [...franchiseMatches, ...chieuRapMatches, ...genreMatches],
+    12,
+  );
+
+  if (related.length === 0) return null;
 
   return (
     <section className="mt-12">
@@ -102,6 +186,10 @@ export default function WatchPage() {
   const svParam = searchParams.get('sv');
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // Wraps the iframe + logo watermark together so our own fullscreen
+  // shortcut ('f' key) fullscreens both — otherwise fullscreening just
+  // the iframe leaves the logo (a sibling element) behind and hidden.
+  const playerContainerRef = useRef<HTMLDivElement>(null);
 
   // Track playback progress received from the same-origin player
   // wrapper via postMessage. Updated on every timeupdate event and
@@ -154,6 +242,21 @@ export default function WatchPage() {
   useEffect(() => {
     setCurrentEpisode({ serverIndex, episodeIndex });
   }, [serverIndex, episodeIndex, setCurrentEpisode]);
+
+  // Cinema mode is per-viewing-session UI state, not a user preference —
+  // but it lives in the global `usePlayerStore`, so it doesn't reset on
+  // its own. Since navigating between episodes of the SAME movie reuses
+  // this same WatchPage instance (React Router doesn't remount it for a
+  // route that only changes ?tap/&sv), cinemaMode correctly survives
+  // episode switches. But it also survives switching to a DIFFERENT
+  // movie for the same reason, which is the bug: leaving movie A while
+  // fullscreen, then opening movie B, opens B already fullscreen because
+  // the store's cinemaMode was never told "this is a new movie". Force
+  // it back to false whenever the slug itself changes so only an actual
+  // movie switch resets it, not an episode switch.
+  useEffect(() => {
+    setCinemaMode(false);
+  }, [slug, setCinemaMode]);
 
   /* ---- Resume prompt ---- */
   const savedProgress = useMemo(() => {
@@ -228,10 +331,38 @@ export default function WatchPage() {
           duration: e.data.duration ?? 0,
         };
       }
+      // Sent when the logo badge rendered inside player.html is clicked —
+      // navigate via the router instead of a hard page reload.
+      if (e.data.action === 'navigateHome') {
+        navigate(ROUTES.HOME);
+      }
+      // iOS Safari can't DOM-fullscreen a container that wraps a <video>
+      // (it hands the video to the native player, hiding all DOM overlays
+      // including the logo watermark). player.html therefore skips native
+      // fullscreen on iOS and asks us to "fake" it instead — our cinema
+      // mode is exactly a fixed full-viewport overlay, so route the
+      // player's fullscreen button to it. This keeps the logo visible on
+      // iOS exactly like Android / desktop.
+      if (e.data.action === 'toggleFullscreen') {
+        setCinemaMode(!cinemaMode);
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [navigate, cinemaMode, setCinemaMode]);
+
+  // Keep the in-iframe player's fullscreen button icon in sync with
+  // cinema mode. On iOS that button toggles cinema mode instead of native
+  // fullscreen, so whenever cinema mode changes (from the player button,
+  // our own "Rạp phim" toggle, Esc, the exit pill or the backdrop) we
+  // tell player.html to flip its button state.
+  useEffect(() => {
+    if (!embedUrl.startsWith('/player.html')) return;
+    iframeRef.current?.contentWindow?.postMessage(
+      { action: 'fullscreenState', state: cinemaMode },
+      '*',
+    );
+  }, [embedUrl, cinemaMode]);
 
   // Reset progress when episode changes so stale values don't carry over
   useEffect(() => {
@@ -313,7 +444,7 @@ export default function WatchPage() {
         case 'F':
           e.preventDefault();
           try {
-            iframeRef.current?.requestFullscreen();
+            playerContainerRef.current?.requestFullscreen();
           } catch {
             /* fullscreen not supported */
           }
@@ -448,22 +579,6 @@ export default function WatchPage() {
         )}
       </AnimatePresence>
 
-      {/* Small "exit cinema mode" pill that floats top-right in cinema mode */}
-      <AnimatePresence>
-        {cinemaMode && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            onClick={() => setCinemaMode(false)}
-            className="fixed right-4 top-4 z-[70] rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20"
-          >
-            {t('watch.exitCinema', 'Thoát rạp')}  (Esc)
-          </motion.button>
-        )}
-      </AnimatePresence>
-
       <motion.div
         variants={fadeIn}
         initial="hidden"
@@ -486,6 +601,7 @@ export default function WatchPage() {
                 }
               >
                 <div
+                  ref={playerContainerRef}
                   className={
                     cinemaMode
                       ? 'relative w-full max-w-[100vw]'
@@ -518,20 +634,34 @@ export default function WatchPage() {
                     </div>
                   )}
 
-                  {/* Logo watermark — top-right corner of video */}
-                  <Link
-                    to={ROUTES.HOME}
-                    className="pointer-events-auto absolute right-3 top-3 z-10 opacity-40 transition-opacity hover:opacity-80"
-                    title="Không Gian Phim"
-                  >
-                    <img
-                      src="/logo.png"
-                      alt="Không Gian Phim"
-                      className="h-8 w-auto drop-shadow-lg sm:h-10"
-                      draggable={false}
-                      style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.8))' }}
-                    />
-                  </Link>
+                  {/* Logo watermark — top-left corner of video, styled as a
+                      rounded pill badge (icon + site name), matching the
+                      khophim.org-style branding reference.
+                      Only rendered for the cross-origin fallback embed. Our
+                      own /player.html embed (the normal case) renders this
+                      same badge itself, as an Artplayer *layer* living
+                      inside the element that goes fullscreen — that's the
+                      only way the logo survives the player's own fullscreen
+                      button, since that button fullscreens the iframe's
+                      internal player container, not this parent div. If we
+                      also drew it here the two badges would double up. */}
+                  {!embedUrl.startsWith('/player.html') && (
+                    <Link
+                      to={ROUTES.HOME}
+                      className="pointer-events-auto absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 backdrop-blur-sm transition-colors hover:bg-black/70"
+                      title="Không Gian Phim"
+                    >
+                      <img
+                        src="/logo.png"
+                        alt="Không Gian Phim"
+                        className="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6"
+                        draggable={false}
+                      />
+                      <span className="text-xs font-semibold text-white drop-shadow-sm sm:text-sm">
+                        Không Gian Phim
+                      </span>
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -686,9 +816,15 @@ export default function WatchPage() {
                   meaningless "Xem Phim" button on a page you're already
                   watching. Instead, show a subtle single-episode notice. */}
               {(() => {
-                const hasMultipleEpisodes =
-                  episodes.length > 1 ||
-                  (currentServer?.server_data.length ?? 0) > 1;
+                // A real episode list only matters when some server actually
+                // has more than one episode to pick between. Having several
+                // servers (Vietsub, Lồng Tiếng, ...) that each hold just one
+                // "Full" entry is NOT a multi-episode movie — that case is
+                // already covered by the server tabs above, so the episode
+                // list here would just be a redundant duplicate.
+                const hasMultipleEpisodes = episodes.some(
+                  (ep) => (ep.server_data?.length ?? 0) > 1,
+                );
 
                 if (!hasMultipleEpisodes) {
                   return (
@@ -712,9 +848,10 @@ export default function WatchPage() {
               })()}
             </div>
 
-            {/* Right sidebar (desktop only) — only when there are real episodes */}
-            {(episodes.length > 1 ||
-              (currentServer?.server_data.length ?? 0) > 1) && (
+            {/* Right sidebar (desktop only) — only when some server actually
+                has more than one episode (see comment above for why having
+                multiple servers alone doesn't count). */}
+            {episodes.some((ep) => (ep.server_data?.length ?? 0) > 1) && (
               <div className="hidden w-80 shrink-0 lg:block xl:w-96">
                 <div className="sticky top-20">
                   <EpisodeList
@@ -806,7 +943,10 @@ export default function WatchPage() {
 
           {/* You might also like */}
           <RelatedMovies
+            name={movie.name}
             categorySlug={movie.category?.[0]?.slug}
+            countrySlug={movie.country?.[0]?.slug}
+            isChieuRap={movie.chieurap}
             currentSlug={movie.slug}
           />
         </div>

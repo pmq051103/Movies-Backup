@@ -52,7 +52,7 @@ const SpotlightGrid: React.FC<SpotlightGridProps> = ({
         {/* Hero card — landscape, large */}
         <Link
           to={`${ROUTES.MOVIE_DETAIL}/${hero.slug}`}
-          className="group relative block aspect-video overflow-hidden rounded-xl bg-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="group relative block aspect-video overflow-hidden rounded-xl bg-[#18181b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]"
           aria-label={hero.name}
         >
           <img
@@ -88,7 +88,7 @@ const SpotlightGrid: React.FC<SpotlightGridProps> = ({
               <motion.span
                 initial={{ opacity: 0, x: -6 }}
                 whileHover={{ opacity: 1, x: 0 }}
-                className="ml-auto hidden items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 font-semibold text-white group-hover:flex"
+                className="ml-auto hidden items-center gap-1.5 rounded-md bg-[#ffd166] px-3 py-1.5 font-semibold text-[#0f111a] group-hover:flex"
               >
                 <FaPlay className="h-3 w-3" />
                 {t("hero.watchNow")}
@@ -107,7 +107,7 @@ const SpotlightGrid: React.FC<SpotlightGridProps> = ({
               <Link
                 key={m._id ?? m.slug}
                 to={`${ROUTES.MOVIE_DETAIL}/${m.slug}`}
-                className="group relative block aspect-video overflow-hidden rounded-lg bg-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                className="group relative block aspect-video overflow-hidden rounded-lg bg-[#18181b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]"
                 aria-label={m.name}
               >
                 <img

@@ -3,11 +3,11 @@ import { useSearchParams } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaFilter, FaTimes, FaSearch } from 'react-icons/fa';
+import { FaFilter, FaTimes } from 'react-icons/fa';
 
 import { MovieGrid, FilterSidebar, SpotlightGrid, CategoryBanner } from '@/components/movie';
 import { Pagination } from '@/components/common';
-import { useTVShows, useContextualSearch } from '@/hooks';
+import { useTVShows } from '@/hooks';
 import type { FilterState, FilterParams } from '@/types';
 
 function parseSearchParams(searchParams: URLSearchParams): FilterState {
@@ -61,25 +61,13 @@ export default function TVShowsPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [inlineSearch, setInlineSearch] = useState('');
 
   const filters = useMemo(() => parseSearchParams(searchParams), [searchParams]);
 
   const apiParams = useMemo(() => filtersToApiParams(filters), [filters]);
   const { data, isLoading, isError } = useTVShows(apiParams);
 
-  const {
-    active: isSearching,
-    isLoading: isSearchLoading,
-    results: searchResults,
-  } = useContextualSearch(inlineSearch, {
-    type: 'series',
-    categorySlug: filters.genre,
-    countrySlug: filters.country,
-  });
-
-  const displayMovies = isSearching ? searchResults : (data?.items ?? []);
-  const displayLoading = isSearching ? isSearchLoading : isLoading;
+  const displayMovies = data?.items ?? [];
 
   const handleFilterChange = useCallback(
     (newFilters: FilterState) => {
@@ -119,42 +107,29 @@ export default function TVShowsPage() {
           <CategoryBanner
             eyebrow="Danh mục"
             title={t('nav.tvShows')}
+            description="Phim bộ nhiều tập đang hot — phim Hàn, phim Trung, phim Âu Mỹ, phim Thái... theo dõi diễn biến hấp dẫn, cập nhật tập mới nhanh chóng mỗi ngày."
             totalItems={data?.pagination?.totalItems}
-            backdropUrl={displayMovies[0]?.thumb_url ?? displayMovies[0]?.poster_url}
+            backdropUrl={
+              // Dùng phim thứ 2 làm ảnh nền banner, không dùng phim đầu tiên —
+              // phim đầu tiên là "hero" của khối SpotlightGrid to bên dưới, dùng
+              // chung ảnh sẽ bị trùng thumbnail giữa banner và khối đó.
+              displayMovies[1]?.thumb_url ??
+              displayMovies[1]?.poster_url ??
+              displayMovies[0]?.thumb_url ??
+              displayMovies[0]?.poster_url
+            }
           />
 
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <div className="flex gap-2 sm:items-center">
-              <div className="relative flex-1 sm:w-64">
-                <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
-                <input
-                  type="text"
-                  value={inlineSearch}
-                  onChange={(e) => setInlineSearch(e.target.value)}
-                  placeholder={t('filter.searchInResults', 'Tìm trong danh sách...')}
-                  className="w-full rounded-lg border border-gray-800 bg-gray-900 py-2 pl-9 pr-9 text-sm text-gray-100 outline-none placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                />
-                {inlineSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setInlineSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-500 hover:text-white"
-                    aria-label={t('search.clear')}
-                  >
-                    <FaTimes className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setSidebarOpen((prev) => !prev)}
-                className="flex shrink-0 items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700 md:hidden"
-                aria-label={t('filter.filters')}
-              >
-                <FaFilter className="h-3.5 w-3.5" />
-                {t('filter.filters')}
-              </button>
-            </div>
+          <div className="mb-6 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              className="flex shrink-0 items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700 md:hidden"
+              aria-label={t('filter.filters')}
+            >
+              <FaFilter className="h-3.5 w-3.5" />
+              {t('filter.filters')}
+            </button>
           </div>
 
           <div className="flex gap-6">
@@ -220,32 +195,24 @@ export default function TVShowsPage() {
                 </div>
               ) : (
                 <>
-                  {displayMovies.length === 0 && isSearching ? (
-                    <p className="py-16 text-center text-gray-500">
-                      {t('search.noResults')}
-                    </p>
-                  ) : (
-                    <>
-                      {!isSearching && filters.page === 1 && displayMovies.length >= 5 && (
-                        <div className="mb-8">
-                          <SpotlightGrid
-                            title={t('nav.tvShows')}
-                            movies={displayMovies.slice(0, 8)}
-                          />
-                        </div>
-                      )}
-                      <MovieGrid
-                        movies={
-                          !isSearching && filters.page === 1 && displayMovies.length >= 5
-                            ? displayMovies.slice(5, 23)
-                            : displayMovies
-                        }
-                        isLoading={displayLoading}
+                  {filters.page === 1 && displayMovies.length >= 5 && (
+                    <div className="mb-8">
+                      <SpotlightGrid
+                        title={t('nav.tvShows')}
+                        movies={displayMovies.slice(0, 8)}
                       />
-                    </>
+                    </div>
                   )}
+                  <MovieGrid
+                    movies={
+                      filters.page === 1 && displayMovies.length >= 5
+                        ? displayMovies.slice(5, 23)
+                        : displayMovies
+                    }
+                    isLoading={isLoading}
+                  />
 
-                  {!isSearching && data?.pagination && (
+                  {data?.pagination && (
                     <Pagination
                       currentPage={data.pagination.currentPage}
                       totalPages={data.pagination.totalPages}

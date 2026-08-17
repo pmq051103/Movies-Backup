@@ -320,75 +320,53 @@ export function useMoviesByCountry(slug?: string, params?: PageParams) {
 }
 
 /**
- * The vsmov `/danh-sach/[slug]` endpoint IGNORES `category` / `country`
- * filters even though it accepts the params. To honour filters we must
- * dispatch to different upstream endpoints:
- *   - genre set     -> /the-loai/[genre]   (respects country + type)
- *   - country set   -> /quoc-gia/[country] (respects type)
- *   - otherwise     -> /danh-sach/[phim-le|phim-bo]
- * `kind` = 'phim-le' or 'phim-bo' decides the intrinsic movie type when
- * the caller narrows a genre/country listing.
+ * phimapi's `/v1/api/danh-sach/[slug]` is the ONE endpoint that both keeps
+ * the listing's intrinsic type AND honours the `category`, `country`,
+ * `year`, `status` and `sort_*` query params. The dedicated
+ * `/v1/api/the-loai/[genre]`, `/v1/api/quoc-gia/[country]` and
+ * `/v1/api/nam/[year]` endpoints all SILENTLY IGNORE the `type` param —
+ * dispatching there used to leak every other movie type into the phim-le /
+ * phim-bo / hoạt hình / tv-shows listings the moment a filter was applied.
+ * So every kind simply lists from `/danh-sach/[slug]` and passes the
+ * filters through as query params; `kind` only picks the intrinsic type.
  */
+type ListKind = "phim-le" | "phim-bo" | "hoathinh" | "tv-shows";
+
+const TYPE_FOR_KIND: Record<ListKind, string> = {
+  "phim-le": "single",
+  "phim-bo": "series",
+  hoathinh: "hoathinh",
+  "tv-shows": "tvshows",
+};
+
 /**
- * The vsmov `/danh-sach/[slug]` endpoint SILENTLY IGNORES the `category`,
- * `country`, and `year` query params — passing them returns unfiltered
- * data. To actually honour filters we must dispatch to the matching
- * dedicated endpoints, which DO respect the params documented below:
- *
- *   endpoint                 respects (in addition to the URL slug)
- *   -----------------------  -------------------------------------
- *   /the-loai/[genre]        country, type, year, status, sort_*
- *   /quoc-gia/[country]      type, year, status, sort_*
- *   /nam/[year]              type, status, sort_*
- *   /danh-sach/[phim-le|bo]  status, sort_* only
- *
- * Priority (most-specific first): genre > country > year > slug.
+ * The `/danh-sach/[slug]` endpoint's slug doesn't always match our internal
+ * `kind` identifier — notably hoạt hình is served at `/danh-sach/hoat-hinh`
+ * (with a dash), not `/danh-sach/hoathinh`. Kept separate from `kind` (used
+ * for the `type` filter value) so each stays correct for its own purpose.
  */
+const DANH_SACH_SLUG_FOR_KIND: Record<ListKind, string> = {
+  "phim-le": "phim-le",
+  "phim-bo": "phim-bo",
+  hoathinh: "hoat-hinh",
+  "tv-shows": "tv-shows",
+};
+
 function pickFilteredEndpoint(
-  kind: "phim-le" | "phim-bo",
+  kind: ListKind,
   params?: FilterParams,
 ): { url: string; params: Record<string, unknown> } {
   const p = { ...(params ?? {}) };
-  const genre = p.category as string | undefined;
-  const country = p.country as string | undefined;
-  const year = p.year as string | number | undefined;
-  const typeForKind = kind === "phim-le" ? "single" : "series";
-
-  delete (p as Record<string, unknown>).category;
-  delete (p as Record<string, unknown>).country;
-  // year is embedded in the path for /nam/[year]; keep it as a query for
-  // /the-loai and /quoc-gia which respect ?year=.
-
-  if (genre) {
-    return {
-      url: `/v1/api/the-loai/${genre}`,
-      params: { ...p, country, type: p.type ?? typeForKind },
-    };
-  }
-
-  if (country) {
-    return {
-      url: `/v1/api/quoc-gia/${country}`,
-      params: { ...p, type: p.type ?? typeForKind },
-    };
-  }
-
-  if (year) {
-    delete (p as Record<string, unknown>).year;
-    return {
-      url: `/v1/api/nam/${year}`,
-      params: { ...p, type: p.type ?? typeForKind },
-    };
-  }
+  const typeForKind = TYPE_FOR_KIND[kind];
 
   return {
-    url: `/v1/api/danh-sach/${kind}`,
+    url: `/v1/api/danh-sach/${DANH_SACH_SLUG_FOR_KIND[kind]}`,
     params: { ...p, type: p.type ?? typeForKind },
   };
 }
 
 async function fetchFilteredMovies(
-  kind: "phim-le" | "phim-bo",
+  kind: ListKind,
   params?: FilterParams,
 ): Promise<APIListResponse<MovieListItem>> {
   const { url, params: qs } = pickFilteredEndpoint(kind, params);
@@ -410,6 +388,24 @@ export function useTVShows(params?: FilterParams) {
   return useQuery({
     queryKey: [QUERY_KEYS.TV_SHOWS, params],
     queryFn: () => fetchFilteredMovies("phim-bo", params),
+    select: selectListResponse,
+  });
+}
+
+/** Animation / hoạt hình with smart filter routing. */
+export function useAnime(params?: FilterParams) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.ANIME, params],
+    queryFn: () => fetchFilteredMovies("hoathinh", params),
+    select: selectListResponse,
+  });
+}
+
+/** TV shows (game shows / reality / talk shows) with smart filter routing. */
+export function useTvShowPrograms(params?: FilterParams) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.TV_SHOW_PROGRAMS, params],
+    queryFn: () => fetchFilteredMovies("tv-shows", params),
     select: selectListResponse,
   });
 }

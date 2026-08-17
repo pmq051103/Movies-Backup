@@ -140,7 +140,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ movies, title }) => {
                       <motion.div
                         initial={{ scale: 0, opacity: 0 }}
                         whileHover={{ scale: 1.1 }}
-                        className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600/90 text-white opacity-0 shadow-lg transition-opacity duration-300 group-hover:opacity-100"
+                        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffd166] text-[#0f111a] opacity-0 shadow-lg shadow-black/30 transition-opacity duration-300 group-hover:opacity-100"
                       >
                         <FaPlay className="h-4 w-4 translate-x-0.5" />
                       </motion.div>

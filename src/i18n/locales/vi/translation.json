@@ -13,7 +13,9 @@
     "close": "Đóng",
     "profile": "Tài Khoản",
     "nowPlaying": "Chiếu Rạp",
-    "upcoming": "Sắp Chiếu"
+    "upcoming": "Sắp Chiếu",
+    "anime": "Hoạt Hình",
+    "tvShowProgram": "TV Show"
   },
   "hero": {
     "watchNow": "Xem Ngay",
@@ -58,12 +60,12 @@
     "updatedToday": "Mới Cập Nhật",
     "newToday": "Phim Mới Cập Nhật Hôm Nay",
     "nowPlaying": "Phim Chiếu Rạp",
+    "upcoming": "Phim Sắp Chiếu",
     "topMustWatch": "Top Phim Đáng Xem",
     "topNowPlaying": "Top 10 Chiếu Rạp",
     "topVietCinema": "Phim Việt Chiếu Rạp",
     "blockbuster": "Phim Bom Tấn",
     "topBlockbuster": "Top 10 Bom Tấn",
-    "upcoming": "Phim Sắp Chiếu",
     "phim4k": "Phim 4K",
     "subteam": "Subteam Đề Cử",
     "totalMovies": "Tổng Số Phim Hiện Tại",
@@ -87,6 +89,8 @@
     "views": "Lượt Xem",
     "rating": "Đánh Giá",
     "episodes": "Danh Sách Tập",
+    "episodeCount": "Số Tập",
+    "episodeUnit": "Tập",
     "season": "Phần",
     "recommendations": "Phim Liên Quan",
     "similar": "Phim Tương Tự",
@@ -305,7 +309,9 @@
     "genresTitle": "Thể Loại Phim",
     "countriesTitle": "Phim Theo Quốc Gia",
     "nowPlayingTitle": "Phim Chiếu Rạp - Xem Phim Chiếu Rạp Online",
-    "upcomingTitle": "Phim Sắp Chiếu - Xem Trailer Phim Mới"
+    "upcomingTitle": "Phim Sắp Chiếu - Xem Trailer Phim Mới",
+    "animeTitle": "Hoạt Hình - Xem Phim Hoạt Hình Online",
+    "tvShowProgramTitle": "TV Show - Xem TV Show Online"
   },
   "welcome": {
     "title": "Mẹo cho bạn",

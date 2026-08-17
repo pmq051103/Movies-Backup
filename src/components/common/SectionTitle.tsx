@@ -10,30 +10,25 @@ interface SectionTitleProps {
 }
 
 /**
- * Shared section header: title with a short gradient underline accent
- * (fading red → transparent) plus an optional "see all" link on the
- * right. Used across every horizontal row / grid section site-wide so
- * headings read as one consistent visual system instead of plain text.
+ * Section header in Tô Phim / tophim style: white bold title on the left,
+ * subtle "Xem tất cả" link on the right (hidden on mobile).
  */
 export default function SectionTitle({ title, viewAllLink, className = '' }: SectionTitleProps) {
   const { t } = useTranslation();
 
   return (
-    <div className={`mb-5 flex items-center justify-between ${className}`}>
-      <div className="relative inline-block pb-2">
-        <h2 className="text-xl font-bold text-white sm:text-2xl">{title}</h2>
-        <span
-          aria-hidden
-          className="absolute bottom-0 left-0 h-[3px] w-14 rounded-full bg-gradient-to-r from-red-500 to-red-500/0 sm:w-20"
-        />
-      </div>
+    <div className={`mb-4 flex items-center justify-between pb-2 ${className}`}>
+      <h2 className="text-lg font-bold leading-tight text-white sm:text-xl lg:text-[22px]">
+        {title}
+      </h2>
       {viewAllLink && (
         <Link
           to={viewAllLink}
-          className="flex shrink-0 items-center gap-1 text-sm text-gray-400 transition-colors hover:text-red-500"
+          aria-label={t('common.seeAll')}
+          className="group hidden shrink-0 items-center gap-1 text-[13px] font-medium text-white/70 transition-colors hover:text-[#ffd166] sm:inline-flex"
         >
-          {t('common.seeAll')}
-          <FaChevronRight className="h-2.5 w-2.5" />
+          <span>{t('common.seeAll')}</span>
+          <FaChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       )}
     </div>

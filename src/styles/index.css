@@ -2,22 +2,52 @@
 
 /* ------------------------------------------------------------------ */
 /* Theme tokens (TailwindCSS v4 CSS-based config)                      */
+/* TOPHIM style — very dark navy base (#0f111a) + yellow accent.       */
 /* ------------------------------------------------------------------ */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Inter", ui-sans-serif, system-ui,
+    -apple-system, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 
-  /* Brand / accent (Netflix-style red) */
-  --color-primary: #e50914;
-  --color-primary-dark: #b20710;
-  --color-primary-light: #f6121d;
+  /* Brand / accent (TOPHIM yellow) */
+  --color-primary: #ffd166;
+  --color-primary-dark: #e0b84a;
+  --color-primary-light: #ffe099;
 
-  /* Dark theme surfaces (default) */
-  --color-bg: #0b0b0f;
-  --color-surface: #141418;
-  --color-surface-hover: #1c1c22;
-  --color-border: #2a2a32;
-  --color-text: #f5f5f7;
+  /* Dark theme surfaces (default) — TOPHIM navy scale */
+  --color-bg: #0f111a;
+  --color-surface: #18181b;
+  --color-surface-hover: #27272a;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #fafafa;
   --color-text-muted: #a1a1aa;
+
+  /* Remap the neutral "gray" scale to TOPHIM zinc/navy tones (dark default) */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #0f111a;
+
+  /* Remap the "red" scale to a warm amber/gold scale so every existing
+     accent (buttons, hovers, underlines, badges) turns TOPHIM yellow. */
+  --color-red-50: #fefce8;
+  --color-red-100: #fef9c3;
+  --color-red-200: #fef08a;
+  --color-red-300: #fde047;
+  --color-red-400: #fbbf24;
+  --color-red-500: #ffd166;
+  --color-red-600: #f5b81a;
+  --color-red-700: #d99900;
+  --color-red-800: #b47700;
+  --color-red-900: #8c5900;
+  --color-red-950: #4a2e00;
 
   --animate-fade-in: fade-in 0.4s ease-out;
   --animate-scale-in: scale-in 0.25s ease-out;
@@ -101,9 +131,11 @@ html:not(.dark) {
   --color-neutral-950: #fafafa;
 }
 
-/* Keep text on saturated brand-color surfaces WHITE in light mode. The
-   --color-white inversion would otherwise darken it and give unreadable
-   contrast on red/blue/emerald/purple/orange backgrounds. */
+/* Keep text on saturated brand-color surfaces READABLE in light mode.
+   With the gold accent remap, gold surfaces (#ffd166) need dark text —
+   the white-on-red rule is inverted so the brand stays legible. The
+   --color-white inversion would otherwise make white text unreadable
+   on the bright gold. */
 html:not(.dark) .bg-red-500,
 html:not(.dark) .bg-red-600,
 html:not(.dark) .bg-red-700,
@@ -122,7 +154,16 @@ html:not(.dark) .bg-orange-600,
 html:not(.dark) .bg-orange-700,
 html:not(.dark) .bg-yellow-500,
 html:not(.dark) .bg-yellow-600 {
-  color: #ffffff;
+  color: #0f111a;
+}
+
+/* Dark mode: gold accent backgrounds get dark text too (white-on-gold
+   has too little contrast). */
+html.dark .bg-red-500,
+html.dark .bg-red-600,
+html.dark .bg-red-700,
+html.dark .bg-primary {
+  color: #0f111a;
 }
 
 /* --------------------------------------------------------------- */
@@ -160,6 +201,15 @@ html:not(.dark) .bg-yellow-600 {
   --color-neutral-800: #262626;
   --color-neutral-900: #171717;
   --color-neutral-950: #0a0a0a;
+
+  /* Gold-accent backgrounds inside always-dark get dark text (matches
+     the global gold rule above). */
+}
+.always-dark .bg-red-500,
+.always-dark .bg-red-600,
+.always-dark .bg-red-700,
+.always-dark .bg-primary {
+  color: #0f111a;
 }
 
 /* ------------------------------------------------------------------ */
@@ -176,6 +226,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* CategoryBanner breaks out to full viewport width via 100vw + negative
+     margins (see CategoryBanner.tsx) so it bleeds edge-to-edge regardless
+     of the page's max-width container. 100vw can be a hair wider than the
+     visible viewport on some browsers when a scrollbar is present, which
+     would otherwise introduce a tiny horizontal scroll — this prevents it. */
+  overflow-x: hidden;
 }
 
 * {
@@ -243,7 +299,7 @@ img {
     background: linear-gradient(
       to right,
       var(--color-bg) 10%,
-      rgba(11, 11, 15, 0.6) 50%,
+      rgba(25, 27, 36, 0.6) 50%,
       transparent 100%
     );
   }
@@ -273,10 +329,29 @@ img {
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .site-header.is-scrolled {
-    background-color: color-mix(in srgb, var(--color-bg) 95%, transparent);
+    background-color: color-mix(in srgb, var(--color-bg) 96%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 1px 0 0 var(--color-border);
+  }
+
+  /* CôBe Phim brand helpers */
+  .gold-gradient-text {
+    background: linear-gradient(90deg, #fcf1d8, #ffd166);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .btn-gold {
+    background: linear-gradient(39deg, #fecf59, #fff1cc);
+    color: #0f111a;
+    box-shadow: 0 5px 10px 5px rgba(255, 218, 125, 0.1);
+    transition: box-shadow 0.3s ease, transform 0.15s ease, opacity 0.2s ease;
+  }
+  .btn-gold:hover {
+    box-shadow: 0 5px 10px 10px rgba(255, 218, 125, 0.18);
+    opacity: 0.95;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -308,4 +383,71 @@ img {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* ReactQuill (admin dashboard) — dark theme overrides. The admin page  */
+/* is always dark (bg-gray-950), but Quill's default "snow" theme is   */
+/* light. These overrides pin it to a dark surface regardless of the    */
+/* site-wide light/dark mode.                                          */
+/* ------------------------------------------------------------------ */
+.admin-quill {
+  color: #e4e4e7;
+}
+.admin-quill .ql-toolbar.ql-snow {
+  border-color: #2a2a32;
+  background-color: #141418;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+.admin-quill .ql-container.ql-snow {
+  border-color: #2a2a32;
+  background-color: #0f0f13;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  font-size: 0.9rem;
+  min-height: 220px;
+}
+.admin-quill .ql-editor {
+  min-height: 220px;
+  color: #e4e4e7;
+}
+.admin-quill .ql-snow .ql-stroke {
+  stroke: #a1a1aa;
+}
+.admin-quill .ql-snow .ql-fill {
+  fill: #a1a1aa;
+}
+.admin-quill .ql-snow .ql-picker {
+  color: #a1a1aa;
+}
+.admin-quill .ql-snow .ql-picker-options {
+  background-color: #141418;
+  border-color: #2a2a32;
+}
+.admin-quill .ql-snow .ql-tooltip {
+  background-color: #141418;
+  border-color: #2a2a32;
+  color: #e4e4e7;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.admin-quill .ql-snow .ql-tooltip input[type="text"] {
+  background-color: #0f0f13;
+  border: 1px solid #2a2a32;
+  color: #e4e4e7;
+}
+.admin-quill .ql-snow .ql-picker-label:hover,
+.admin-quill .ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  color: #f5f5f7;
+}
+.admin-quill .ql-snow .ql-picker-label:hover .ql-stroke,
+.admin-quill .ql-snow .ql-picker.ql-expanded .ql-picker-label .ql-stroke {
+  stroke: #f5f5f7;
+}
+.admin-quill .ql-snow .ql-editor a {
+  color: #f6121d;
+}
+.admin-quill .ql-snow .ql-editor.ql-blank::before {
+  color: #52525b;
+  font-style: normal;
 }

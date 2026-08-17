@@ -50,7 +50,7 @@ const TopRankingRow: React.FC<TopRankingRowProps> = ({
                 aria-hidden="true"
                 className="pointer-events-none select-none text-[6rem] font-black leading-none tracking-tighter text-transparent sm:text-[8rem]"
                 style={{
-                  WebkitTextStroke: "3px #ef4444",
+                  WebkitTextStroke: "3px #ffd166",
                   color: "transparent",
                 }}
               >
