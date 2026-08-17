@@ -22,42 +22,53 @@ function stripHtml(html: string): string {
 }
 
 /** tophim uses per-movie logo images; we emulate varied "logo" title
- *  styles per slide so each film gets a distinct look. */
+ *  styles per slide so each film gets a distinct look (different font,
+ *  weight, case and colour — a bit like Netflix's per-title typography). */
 const TITLE_STYLES = [
   {
-    font: 'font-[--font-space-grotesk]',
-    weight: 'font-black',
+    fontFamily: "'Space Grotesk', 'Be Vietnam Pro', 'Inter', sans-serif",
+    fontWeight: 900,
+    textTransform: 'none',
+    fontStyle: 'normal',
+    letterSpacing: '-0.03em',
     size: 'text-4xl md:text-6xl xl:text-7xl',
-    tracking: 'tracking-tight',
-    shadow: 'drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]',
+    color: '#ffffff',
   },
   {
-    font: 'font-[--font-space-grotesk]',
-    weight: 'font-black',
-    size: 'text-4xl md:text-5xl xl:text-6xl',
-    tracking: 'tracking-wide uppercase',
-    shadow: 'drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]',
+    fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif",
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    fontStyle: 'normal',
+    letterSpacing: '0.08em',
+    size: 'text-3xl md:text-5xl xl:text-6xl',
+    color: '#ffffff',
   },
   {
-    font: 'font-[--font-space-grotesk]',
-    weight: 'font-extrabold',
+    fontFamily: "Georgia, 'Times New Roman', serif",
+    fontWeight: 700,
+    textTransform: 'none',
+    fontStyle: 'italic',
+    letterSpacing: '-0.01em',
+    size: 'text-4xl md:text-7xl xl:text-8xl',
+    color: 'linear-gradient(180deg, #ffffff 0%, #fecf59 100%)',
+  },
+  {
+    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+    fontWeight: 900,
+    textTransform: 'uppercase',
+    fontStyle: 'normal',
+    letterSpacing: '-0.02em',
     size: 'text-5xl md:text-7xl xl:text-8xl',
-    tracking: 'tracking-tighter',
-    shadow: 'drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]',
+    color: '#ffffff',
   },
   {
-    font: 'font-[--font-space-grotesk]',
-    weight: 'font-bold italic',
+    fontFamily: "'Trebuchet MS', 'Arial Narrow', 'Be Vietnam Pro', sans-serif",
+    fontWeight: 400,
+    textTransform: 'none',
+    fontStyle: 'italic',
+    letterSpacing: '0.01em',
     size: 'text-4xl md:text-6xl xl:text-7xl',
-    tracking: 'tracking-normal',
-    shadow: 'drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]',
-  },
-  {
-    font: 'font-[--font-space-grotesk]',
-    weight: 'font-black',
-    size: 'text-4xl md:text-5xl xl:text-6xl',
-    tracking: 'tracking-tight',
-    shadow: 'drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]',
+    color: '#ffe9b3',
   },
 ];
 
@@ -200,7 +211,22 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                           </h2>
                           {/* Desktop "logo" title — varied style per slide */}
                           <h2
-                            className={`hidden md:block leading-none ${style.font} ${style.weight} ${style.size} ${style.tracking} text-white ${style.shadow}`}
+                            className={`hidden md:block leading-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)] ${style.size}`}
+                            style={{
+                              fontFamily: style.fontFamily,
+                              fontWeight: style.fontWeight,
+                              fontStyle: style.fontStyle,
+                              textTransform: style.textTransform,
+                              letterSpacing: style.letterSpacing,
+                              ...(style.color.startsWith('linear-gradient')
+                                ? {
+                                    backgroundImage: style.color,
+                                    WebkitBackgroundClip: 'text',
+                                    backgroundClip: 'text',
+                                    color: 'transparent',
+                                  }
+                                : { color: style.color }),
+                            }}
                           >
                             {movie.name}
                           </h2>
@@ -257,59 +283,102 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                           </div>
                         )}
 
-                        {/* Actions (desktop) */}
-                        <div className="hidden md:flex justify-center md:justify-start items-center gap-4">
-                          <Link
-                            to={`${ROUTES.WATCH}/${movie.slug}`}
-                            title={t('movie.watchNow')}
-                            className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 text-[#0f1115] rounded-full flex items-center justify-center transition-transform hover:scale-105 shadow-[0_0_15px_rgba(254,207,89,0.5)] shrink-0"
-                            style={{
-                              background:
-                                'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
-                            }}
-                          >
-                            <FaPlay className="relative w-6 h-6 md:w-8 md:h-8 text-[#0f1115] translate-x-0.5" />
-                          </Link>
-
-                          <div className="flex bg-white/5 border border-white/20 rounded-full backdrop-blur-md h-10 md:h-12 lg:h-14 items-center overflow-hidden">
-                            <button
-                              type="button"
-                              className="group/btn w-16 md:w-20 h-full flex items-center justify-center transition-all text-white active:scale-75"
-                              title={t('nav.favorites')}
-                              onClick={() => toggleFavorite(movie)}
-                              aria-label={t('nav.favorites')}
-                            >
-                              <FaHeart
-                                className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-500 ease-in-out group-hover/btn:scale-110 ${
-                                  isFavorite(movie.slug)
-                                    ? 'text-[#FECF59] fill-current'
-                                    : 'text-white fill-transparent'
-                                }`}
-                              />
-                            </button>
-                            <div className="w-[1px] h-3/5 bg-white/20" />
+                          {/* Actions (desktop) */}
+                          <div className="hidden md:flex justify-center md:justify-start items-center gap-4">
                             <Link
-                              to={detailUrl(movie)}
-                              className="group/link w-16 md:w-20 h-full flex items-center justify-center transition-colors text-white"
-                              title={t('movie.moreInfo')}
+                              to={`${ROUTES.WATCH}/${movie.slug}`}
+                              title={t('movie.watchNow')}
+                              className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 text-[#0f1115] rounded-full flex items-center justify-center transition-transform hover:scale-105 shadow-[0_0_15px_rgba(254,207,89,0.5)] shrink-0"
+                              style={{
+                                background:
+                                  'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
+                              }}
                             >
-                              <FaInfoCircle className="w-5 h-5 md:w-6 md:h-6 text-white group-hover/link:text-[#FECF59] transition-colors" />
+                              <FaPlay className="relative w-6 h-6 md:w-8 md:h-8 text-[#0f1115] translate-x-0.5" />
                             </Link>
+
+                            <div className="flex bg-white/5 border border-white/20 rounded-full backdrop-blur-md h-10 md:h-12 lg:h-14 items-center overflow-hidden">
+                              <button
+                                type="button"
+                                className="group/btn w-16 md:w-20 h-full flex items-center justify-center transition-all text-white active:scale-75"
+                                title={t('nav.favorites')}
+                                onClick={() => toggleFavorite(movie)}
+                                aria-label={t('nav.favorites')}
+                              >
+                                <FaHeart
+                                  className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-500 ease-in-out group-hover/btn:scale-110 ${
+                                    isFavorite(movie.slug)
+                                      ? 'text-[#FECF59] fill-current'
+                                      : 'text-white fill-transparent'
+                                  }`}
+                                />
+                              </button>
+                              <div className="w-[1px] h-3/5 bg-white/20" />
+                              <Link
+                                to={detailUrl(movie)}
+                                className="group/link w-16 md:w-20 h-full flex items-center justify-center transition-colors text-white"
+                                title={t('movie.moreInfo')}
+                              >
+                                <FaInfoCircle className="w-5 h-5 md:w-6 md:h-6 text-white group-hover/link:text-[#FECF59] transition-colors" />
+                              </Link>
+                            </div>
+                          </div>
+
+                          {/* Actions (mobile) — watch + favorite + info */}
+                          <div className="md:hidden flex justify-center items-center gap-3 mt-2">
+                            <Link
+                              to={`${ROUTES.WATCH}/${movie.slug}`}
+                              title={t('movie.watchNow')}
+                              aria-label={t('movie.watchNow')}
+                              className="w-10 h-10 text-[#0f1115] rounded-full flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(254,207,89,0.5)]"
+                              style={{
+                                background:
+                                  'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
+                              }}
+                            >
+                              <FaPlay className="relative w-4 h-4 text-[#0f1115] translate-x-0.5" />
+                            </Link>
+
+                            <div className="flex bg-white/10 border border-white/25 rounded-full backdrop-blur-md h-10 items-center overflow-hidden">
+                              <button
+                                type="button"
+                                className="group/btn w-12 h-full flex items-center justify-center transition-all text-white active:scale-75"
+                                title={t('nav.favorites')}
+                                onClick={() => toggleFavorite(movie)}
+                                aria-label={t('nav.favorites')}
+                              >
+                                <FaHeart
+                                  className={`w-5 h-5 transition-all duration-500 ease-in-out group-hover/btn:scale-110 ${
+                                    isFavorite(movie.slug)
+                                      ? 'text-[#FECF59] fill-current'
+                                      : 'text-white fill-transparent'
+                                  }`}
+                                />
+                              </button>
+                              <div className="w-[1px] h-3/5 bg-white/25" />
+                              <Link
+                                to={detailUrl(movie)}
+                                className="group/link w-12 h-full flex items-center justify-center text-white"
+                                title={t('movie.moreInfo')}
+                              >
+                                <FaInfoCircle className="w-5 h-5 text-white group-hover/link:text-[#FECF59] transition-colors" />
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Mobile: whole slide links to detail */}
+                  {/* Mobile: whole slide links to detail (below content so
+                      the watch/favorite/info buttons stay tappable) */}
                   <Link
                     to={detailUrl(movie)}
-                    className="absolute inset-0 z-30 md:hidden"
+                    className="absolute inset-0 z-10 md:hidden"
                     title={t('movie.moreInfo')}
                     aria-label={`${t('movie.moreInfo')} ${movie.name}`}
                   />
                 </div>
-              </div>
             );
           })}
         </div>

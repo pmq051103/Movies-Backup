@@ -7,7 +7,7 @@ import { FaPlay, FaChevronRight } from 'react-icons/fa';
 
 import {
   HeroBanner,
-  MovieCard,
+  MovieRow,
   SpotlightGrid,
   TopRankingRow,
   UpcomingRow,
@@ -22,7 +22,6 @@ import {
 } from '@/hooks';
 import { ROUTES } from '@/constants';
 import { getMoviePoster, onImgError } from '@/utils';
-import type { MovieListItem } from '@/types';
 
 /* -------------------------------------------------------------------------- */
 /* Animation                                                                   */
@@ -41,34 +40,6 @@ const itemVariants = {
     transition: { duration: 0.45, ease: 'easeOut' as const },
   },
 };
-
-/* -------------------------------------------------------------------------- */
-/* SectionGrid — tophim-style uniform grid (2/3/4/6/8 columns)                */
-/* -------------------------------------------------------------------------- */
-
-interface SectionGridProps {
-  title: string;
-  movies: MovieListItem[];
-  viewAllLink?: string;
-  /** How many items to show. Defaults to 12. */
-  limit?: number;
-}
-
-function SectionGrid({ title, movies, viewAllLink, limit = 12 }: SectionGridProps) {
-  const items = movies.slice(0, limit);
-  if (items.length === 0) return null;
-
-  return (
-    <section>
-      <SectionTitle title={title} viewAllLink={viewAllLink} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-        {items.map((movie) => (
-          <MovieCard key={movie._id ?? movie.slug} movie={movie} />
-        ))}
-      </div>
-    </section>
-  );
-}
 
 /* -------------------------------------------------------------------------- */
 /* TopicCards — "Bạn đang quan tâm gì?" gradient cards (tophim feature)       */
@@ -348,10 +319,10 @@ export default function HomePage() {
             {/* ── Phim Mới Cập Nhật Hôm Nay ── */}
             {updatedTodayItems.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.newToday', 'Phim Mới Cập Nhật Hôm Nay')}
                   movies={updatedTodayItems}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
@@ -413,14 +384,14 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Lẻ Mới — Grid ── */}
+            {/* ── Phim Lẻ Mới — horizontal scroll ── */}
             {singleMovies?.items && singleMovies.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.latestMovies')}
                   movies={singleMovies.items}
                   viewAllLink={ROUTES.MOVIES}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
@@ -437,14 +408,14 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Bộ Mới — Grid ── */}
+            {/* ── Phim Bộ Mới — horizontal scroll ── */}
             {tvShows?.items && tvShows.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.latestTVShows')}
                   movies={tvShows.items}
                   viewAllLink={ROUTES.TV_SHOWS}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
@@ -471,13 +442,14 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Anime — Spotlight ── */}
+            {/* ── Anime — horizontal scroll ── */}
             {animeSpotlight.length >= 5 && (
               <motion.section variants={itemVariants}>
-                <SpotlightGrid
+                <MovieRow
                   title={t('home.anime')}
                   movies={animeSpotlight}
                   viewAllLink={ROUTES.ANIME}
+                  limit={10}
                 />
               </motion.section>
             )}
@@ -493,58 +465,58 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── TV Shows — Grid ── */}
+            {/* ── TV Shows — horizontal scroll ── */}
             {tvShowsCategory?.items && tvShowsCategory.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.tvShowsCategory', 'TV Shows')}
                   movies={tvShowsCategory.items}
                   viewAllLink={ROUTES.TV_SHOW_PROGRAMS}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── Phim Vietsub — Grid ── */}
+            {/* ── Phim Vietsub — horizontal scroll ── */}
             {vietsub?.items && vietsub.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.vietsub', 'Phim Vietsub')}
                   movies={vietsub.items}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── Phim Thuyết Minh — Grid ── */}
+            {/* ── Phim Thuyết Minh — horizontal scroll ── */}
             {thuyetMinh?.items && thuyetMinh.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.thuyetMinh', 'Phim Thuyết Minh')}
                   movies={thuyetMinh.items}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── Phim Lồng Tiếng — Grid ── */}
+            {/* ── Phim Lồng Tiếng — horizontal scroll ── */}
             {longTieng?.items && longTieng.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.longTieng', 'Phim Lồng Tiếng')}
                   movies={longTieng.items}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── Subteam Đề Cử — Grid ── */}
+            {/* ── Subteam Đề Cử — horizontal scroll ── */}
             {subteamData?.items && subteamData.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <SectionGrid
+                <MovieRow
                   title={t('home.subteam', 'Subteam Đề Cử')}
                   movies={subteamData.items}
-                  limit={12}
+                  limit={10}
                 />
               </motion.section>
             )}

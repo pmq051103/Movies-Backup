@@ -10,11 +10,13 @@ interface MovieRowProps {
   title: string;
   movies: MovieListItem[];
   viewAllLink?: string;
+  /** How many items to show. Defaults to all. */
+  limit?: number;
 }
 
 const SCROLL_AMOUNT = 600;
 
-const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink }) => {
+const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink, limit }) => {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -49,7 +51,8 @@ const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink }) => {
     el.scrollBy({ left: offset, behavior: 'smooth' });
   }, []);
 
-  if (!movies.length) return null;
+  const items = limit ? movies.slice(0, limit) : movies;
+  if (!items.length) return null;
 
   return (
     <section className="relative py-4">
@@ -85,9 +88,9 @@ const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink }) => {
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {movies.map((movie) => (
+          {items.map((movie) => (
             <div
-              key={movie._id}
+              key={movie._id ?? movie.slug}
               className="min-w-[140px] max-w-[180px] flex-shrink-0 snap-start sm:min-w-[160px] md:min-w-[180px]"
             >
               <MovieCard movie={movie} />

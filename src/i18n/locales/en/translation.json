@@ -215,6 +215,8 @@
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right",
     "close": "Close",
+    "like": "Like",
+    "unlike": "Unlike",
     "shareToFacebook": "Share to Facebook",
     "shareToTwitter": "Share to Twitter",
     "results": "results"
