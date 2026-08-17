@@ -14,7 +14,6 @@ import { getMovieDetailFromSource } from '@/api/dualSource';
 import type {
   MovieListItem,
   MovieDetailResponse,
-  MovieDetailData,
   Pagination,
   APIListResponse,
   FilterParams,
@@ -125,9 +124,9 @@ export interface HeroSlide extends MovieListItem {
   _source?: MovieSource;
   content?: string;
   time?: string;
-  lang_key?: string[];
-  category?: { id: string; name: string; slug: string }[];
-  country?: { id: string; name: string; slug: string }[];
+  lang_key?: string;
+  category?: { id: number; name: string; slug: string }[];
+  country?: { id: number; name: string; slug: string }[];
 }
 
 export function useHeroMovies(movies: MovieListItem[], limit = 5) {

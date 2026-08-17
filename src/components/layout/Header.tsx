@@ -13,6 +13,7 @@ import {
   FaBroadcastTower,
   FaStar,
   FaChevronRight,
+  FaDownload,
 } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 
@@ -120,6 +121,7 @@ const Header: React.FC = () => {
     { label: "Phim Chiếu Rạp", path: ROUTES.NOW_PLAYING },
     { label: "Phim Đánh Giá Cao", path: ROUTES.TOP_RATED },
     { label: t("nav.favorites"), path: ROUTES.FAVORITES },
+    { label: "Tải App", path: ROUTES.DOWNLOAD_APP },
   ];
 
   const mobileNavIcons: Record<string, React.ReactNode> = {
@@ -130,6 +132,7 @@ const Header: React.FC = () => {
     [ROUTES.NOW_PLAYING]: <FaStar className="h-4 w-4" />,
     [ROUTES.TOP_RATED]: <FaStar className="h-4 w-4" />,
     [ROUTES.FAVORITES]: <FaHeart className="h-4 w-4" />,
+    [ROUTES.DOWNLOAD_APP]: <FaDownload className="h-4 w-4" />,
   };
 
   const scheduleClose = useCallback(() => {
@@ -189,6 +192,7 @@ const Header: React.FC = () => {
     { label: "Phim Đánh Giá Cao", path: ROUTES.TOP_RATED },
     { label: t("nav.favorites"), path: ROUTES.FAVORITES },
     { label: "Lịch Chiếu", path: ROUTES.TV_SHOW_PROGRAMS },
+    { label: "Tải App", path: ROUTES.DOWNLOAD_APP },
   ];
 
   const goResult = useCallback(

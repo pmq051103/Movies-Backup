@@ -21,6 +21,7 @@ const footerLinks: FooterLink[] = [
   { label: "Điều khoản sử dụng", path: "#" },
   { label: "Giới thiệu", path: "#" },
   { label: "Liên hệ", path: "#" },
+  { label: "Tải App", path: ROUTES.DOWNLOAD_APP },
   { label: "Donate", path: ROUTES.DONATE },
 ];
 

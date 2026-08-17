@@ -118,6 +118,28 @@ function TopicCards({ genres }: TopicCardsProps) {
             </div>
           </Link>
         ))}
+
+        {/* "+N chủ đề" card — mobile/tablet only (tophim renders it below lg
+            and swaps in the wide "Tất cả chủ đề" button on desktop). */}
+        {genres.length > 5 && (
+          <Link
+            to={ROUTES.GENRES}
+            className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:hidden"
+            style={{ background: '#303443' }}
+          >
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-110 sm:h-32 sm:w-32" />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_58%)]" />
+            <div className="relative z-10 flex h-full w-full flex-col justify-between">
+              <h3 className="line-clamp-2 select-none pr-[28%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
+                +{genres.length - 5} chủ đề
+              </h3>
+              <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
+                Khám phá
+                <FaChevronRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5" />
+              </span>
+            </div>
+          </Link>
+        )}
       </div>
 
       <Link
