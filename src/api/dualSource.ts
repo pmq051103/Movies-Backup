@@ -320,6 +320,24 @@ function mergeEpisodes(
 }
 
 /**
+ * Fetch movie detail from a SINGLE named source (no merge, no fallback).
+ * Used to enrich the homepage hero banner — the hero slides come from the
+ * latest-feed where each item is already tagged with `_source`, so we only
+ * need the one source's detail (content, quality, episode, lang) to render
+ * the tophim-style banner without tripling the request count.
+ */
+export async function getMovieDetailFromSource(
+  slug: string,
+  source: MovieSource = 'phimapi',
+): Promise<MovieDetailResponse | null> {
+  const client =
+    source === 'vsmov' ? vsmovGet : source === 'ophim' ? ophimGet : apiGet;
+  const raw = await safe(client<MovieDetailResponse>(`/phim/${slug}`));
+  if (!raw?.movie) return null;
+  return source === 'ophim' ? normalizeOphimDetail(raw) : raw;
+}
+
+/**
  * Fetch movie detail from all three sources and merge episode servers.
  *
  * @param slug    Movie slug (URL identifier).

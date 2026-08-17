@@ -101,6 +101,7 @@ export const ROUTES = {
   FAVORITES: '/yeu-thich',
   HISTORY: '/lich-su',
   DONATE: '/donate',
+  DOWNLOAD_APP: '/tai-app',
   NOT_FOUND: '/404',
 } as const;
 

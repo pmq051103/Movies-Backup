@@ -18,6 +18,7 @@ import {
   useLatestMovies,
   useMoviesBySlug,
   useGenres,
+  useHeroMovies,
 } from '@/hooks';
 import { ROUTES } from '@/constants';
 import { getMoviePoster, onImgError } from '@/utils';
@@ -183,6 +184,7 @@ export default function HomePage() {
     () => latestData?.items.slice(0, 6) ?? [],
     [latestData],
   );
+  const heroSlides = useHeroMovies(heroBannerMovies, 5);
 
   const continueWatchingItems = useMemo(
     () =>
@@ -253,7 +255,7 @@ export default function HomePage() {
       </Helmet>
 
       <div className="min-h-screen bg-gray-950 text-white">
-        {heroBannerMovies.length > 0 && <HeroBanner movies={heroBannerMovies} />}
+        {heroSlides.length > 0 && <HeroBanner movies={heroSlides} />}
 
         <div className="container mx-auto mt-12 space-y-14 px-4 pb-16 sm:px-6">
           <motion.div

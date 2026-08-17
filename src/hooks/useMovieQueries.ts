@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import {
   getLatestMovies,
   getMovieDetail,
@@ -10,9 +10,11 @@ import {
   getMoviesBySlug,
   getMovieCatalogStats,
 } from '@/api';
+import { getMovieDetailFromSource } from '@/api/dualSource';
 import type {
   MovieListItem,
   MovieDetailResponse,
+  MovieDetailData,
   Pagination,
   APIListResponse,
   FilterParams,
@@ -111,6 +113,52 @@ export function useLatestMovies(page: number = 1) {
     queryKey: [QUERY_KEYS.LATEST_MOVIES, page],
     queryFn: () => getLatestMovies(page),
     select: selectListResponse,
+  });
+}
+
+/**
+ * Enrich the top hero slides with detail data so the banner can render
+ * the full tophim-style meta (description, quality, episode, lang, time).
+ * One lightweight single-source request per slide (source from `_source`).
+ */
+export interface HeroSlide extends MovieListItem {
+  _source?: MovieSource;
+  content?: string;
+  time?: string;
+  lang_key?: string[];
+  category?: { id: string; name: string; slug: string }[];
+  country?: { id: string; name: string; slug: string }[];
+}
+
+export function useHeroMovies(movies: MovieListItem[], limit = 5) {
+  const slides = movies.slice(0, limit);
+  const queries = useQueries({
+    queries: slides.map((m) => {
+      const src = (m as HeroSlide)._source ?? 'phimapi';
+      return {
+        queryKey: [QUERY_KEYS.MOVIE_DETAIL, 'hero', m.slug, src],
+        queryFn: () => getMovieDetailFromSource(m.slug, src),
+        enabled: !!m.slug,
+        staleTime: 10 * 60 * 1000,
+      };
+    }),
+  });
+
+  return slides.map((m, i) => {
+    const detail = queries[i]?.data?.movie;
+    if (!detail) return m as HeroSlide;
+    return {
+      ...m,
+      content: detail.content,
+      time: detail.time,
+      lang_key: detail.lang,
+      episode_current: detail.episode_current || m.episode_current,
+      quality: detail.quality || m.quality,
+      lang: detail.lang || m.lang,
+      category: detail.category,
+      country: detail.country,
+      tmdb: detail.tmdb,
+    } as HeroSlide;
   });
 }
 
