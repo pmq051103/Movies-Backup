@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { FaGlobeAmericas, FaGlobeAsia, FaGlobeEurope } from 'react-icons/fa';
 
-import { MovieGrid, SpotlightGrid, CategoryBanner } from '@/components/movie';
+import { MovieGrid } from '@/components/movie';
 import { Pagination, GridSkeleton } from '@/components/common';
 import {
   useCountries,
@@ -59,7 +59,7 @@ function CountryListView() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
         <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t('nav.countries')}</h1>
         <GridSkeleton count={16} />
       </div>
@@ -67,7 +67,7 @@ function CountryListView() {
   }
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
       <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t('nav.countries')}</h1>
 
       {countries.length === 0 ? (
@@ -166,7 +166,7 @@ function CountryDetailView({ slug }: { slug: string }) {
   );
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
       <Helmet>
         <title>{`${countryName} - ${t('seo.countriesTitle')}`}</title>
         <meta name="description" content={`Phim ${countryName} — xem phim online miễn phí tại Không Gian Phim.`} />
@@ -175,22 +175,7 @@ function CountryDetailView({ slug }: { slug: string }) {
         <link rel="canonical" href={`https://khonggianphim.online/quoc-gia/${slug}`} />
       </Helmet>
 
-      <CategoryBanner
-        eyebrow={t('nav.countries')}
-        title={countryName}
-        description={`Phim ${countryName} chọn lọc, đa dạng thể loại — Vietsub, thuyết minh, lồng tiếng, cập nhật mới mỗi ngày để bạn khám phá điện ảnh ${countryName} dễ dàng hơn.`}
-        totalItems={data?.pagination?.totalItems}
-        backdropUrl={
-          // Dùng phim thứ 2 làm ảnh nền banner, không dùng phim đầu tiên —
-          // phim đầu tiên là "hero" của khối SpotlightGrid to bên dưới, dùng
-          // chung ảnh sẽ bị trùng thumbnail giữa banner và khối đó.
-          displayMovies[1]?.thumb_url ??
-          displayMovies[1]?.poster_url ??
-          displayMovies[0]?.thumb_url ??
-          displayMovies[0]?.poster_url
-        }
-        icon={FaGlobeAsia}
-      />
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{countryName}</h1>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex gap-1 rounded-lg border border-gray-800 bg-gray-900 p-1">
@@ -214,23 +199,7 @@ function CountryDetailView({ slug }: { slug: string }) {
       {isLoading ? (
         <GridSkeleton />
       ) : (
-        <>
-          {page === 1 && displayMovies.length >= 5 && (
-            <div className="mb-8">
-              <SpotlightGrid
-                title={countryName}
-                movies={displayMovies.slice(0, 8)}
-              />
-            </div>
-          )}
-          <MovieGrid
-            movies={
-              page === 1 && displayMovies.length >= 5
-                ? displayMovies.slice(5, 23)
-                : displayMovies
-            }
-          />
-        </>
+        <MovieGrid movies={displayMovies} />
       )}
 
       {data?.pagination && data.pagination.totalPages > 1 && (

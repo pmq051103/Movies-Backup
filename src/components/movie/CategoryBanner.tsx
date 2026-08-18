@@ -61,7 +61,7 @@ export default function CategoryBanner({
         <div className="absolute inset-0 bg-gradient-to-t from-[#0f111a] via-[#0f111a]/55 to-[#0f111a]/10" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0f111a]/85 via-[#0f111a]/30 to-transparent" />
 
-        <div className="relative mx-auto flex h-full max-w-[1600px] flex-col justify-end px-4 pb-6 sm:px-6 sm:pb-10 lg:px-8">
+        <div className="relative mx-auto flex h-full w-full flex-col justify-end px-4 pb-6 sm:px-6 sm:pb-10 lg:px-8">
           <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#ffd166]">
             <Icon className="h-3 w-3" />
             {eyebrow}

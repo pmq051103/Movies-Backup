@@ -14,6 +14,7 @@ import {
   FaStar,
   FaChevronRight,
   FaDownload,
+  FaMobileAlt,
 } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +23,7 @@ import { useGenres, useCountries } from "@/hooks";
 import { useDebounce } from "@/hooks";
 import { useSearchMovies } from "@/hooks/useMovies";
 import { ROUTES } from "@/constants";
+import { SITE_NAME } from "@/constants/seo";
 import { getMoviePoster } from "@/utils";
 import Logo from "@/components/common/Logo";
 import type { Genre, Country } from "@/types";
@@ -493,6 +495,17 @@ const Header: React.FC = () => {
                 >
                   <FaHeart className="w-5 h-5" />
                 </RouterLink>
+                <RouterLink
+                  to={ROUTES.DOWNLOAD_APP}
+                  className="hidden xl:flex items-center gap-2 shrink-0 rounded-full px-2 py-1.5 transition-colors hover:bg-white/5"
+                >
+                  <FaMobileAlt className="h-7 w-7 shrink-0 text-[#ffd166]" />
+                  <span className="flex flex-col leading-tight text-left">
+                    <span className="text-[11px] text-zinc-400">Tải ứng dụng</span>
+                    <span className="text-[13px] font-bold text-white">{SITE_NAME}</span>
+                  </span>
+                </RouterLink>
+
                 <RouterLink
                   to={ROUTES.FAVORITES}
                   className="flex justify-center items-center gap-1.5 h-9 xl:h-10 px-3 xl:px-4 bg-[#F2F4F7] hover:bg-white text-[#1c1c1c] rounded-full font-medium transition-colors text-[13px] xl:text-sm shadow-sm hover:shadow shrink-0"

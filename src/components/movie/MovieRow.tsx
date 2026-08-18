@@ -91,7 +91,7 @@ const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink, limit }
           {items.map((movie) => (
             <div
               key={movie._id ?? movie.slug}
-              className="min-w-[140px] max-w-[180px] flex-shrink-0 snap-start sm:min-w-[160px] md:min-w-[180px]"
+              className="min-w-[140px] max-w-[160px] flex-shrink-0 snap-start sm:min-w-[160px] sm:max-w-[190px] md:min-w-[180px] md:max-w-[210px] lg:min-w-[200px] lg:max-w-[230px] xl:min-w-[220px] xl:max-w-[250px] 2xl:min-w-[240px] 2xl:max-w-[270px]"
             >
               <MovieCard movie={movie} />
             </div>

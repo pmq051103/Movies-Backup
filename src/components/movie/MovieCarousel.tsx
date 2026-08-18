@@ -161,7 +161,7 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({
               <motion.div
                 key={movie._id}
                 variants={itemVariants}
-                className="min-w-[260px] max-w-[320px] flex-shrink-0 sm:min-w-[280px] md:min-w-[320px]"
+                className="min-w-[260px] max-w-[320px] flex-shrink-0 sm:min-w-[280px] sm:max-w-[340px] md:min-w-[320px] md:max-w-[380px] lg:min-w-[360px] lg:max-w-[420px] xl:min-w-[400px] xl:max-w-[460px] 2xl:min-w-[440px] 2xl:max-w-[500px]"
               >
                 <MovieHoverWrapper movie={movie}>
                   <Link

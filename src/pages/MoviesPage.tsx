@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaFilter, FaTimes } from 'react-icons/fa';
 
-import { MovieGrid, FilterSidebar, SpotlightGrid, CategoryBanner } from '@/components/movie';
+import { MovieGrid, FilterSidebar } from '@/components/movie';
 import { Pagination } from '@/components/common';
 import { useMovies } from '@/hooks';
 import type { FilterState, FilterParams } from '@/types';
@@ -104,22 +104,8 @@ export default function MoviesPage() {
         initial="hidden"
         animate="visible"
       >
-        <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-          <CategoryBanner
-            eyebrow="Danh mục"
-            title={t('nav.movies')}
-            description="Kho phim lẻ đa dạng thể loại — hành động, tình cảm, kinh dị, hài hước, viễn tưởng... Vietsub, thuyết minh, lồng tiếng chất lượng cao, cập nhật liên tục mỗi ngày."
-            totalItems={data?.pagination?.totalItems}
-            backdropUrl={
-              // Dùng phim thứ 2 làm ảnh nền banner, không dùng phim đầu tiên —
-              // phim đầu tiên là "hero" của khối SpotlightGrid to bên dưới, dùng
-              // chung ảnh sẽ bị trùng thumbnail giữa banner và khối đó.
-              displayMovies[1]?.thumb_url ??
-              displayMovies[1]?.poster_url ??
-              displayMovies[0]?.thumb_url ??
-              displayMovies[0]?.poster_url
-            }
-          />
+        <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
+          <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t('nav.movies')}</h1>
 
           {/* Inline search + filter toggle */}
           <div className="mb-6 flex justify-end">
@@ -197,22 +183,7 @@ export default function MoviesPage() {
                 </div>
               ) : (
                 <>
-                  {filters.page === 1 && displayMovies.length >= 5 && (
-                    <div className="mb-8">
-                      <SpotlightGrid
-                        title={t('nav.movies')}
-                        movies={displayMovies.slice(0, 8)}
-                      />
-                    </div>
-                  )}
-                  <MovieGrid
-                    movies={
-                      filters.page === 1 && displayMovies.length >= 5
-                        ? displayMovies.slice(5, 23)
-                        : displayMovies
-                    }
-                    isLoading={isLoading}
-                  />
+                  <MovieGrid movies={displayMovies} isLoading={isLoading} />
 
                   {data?.pagination && (
                     <Pagination

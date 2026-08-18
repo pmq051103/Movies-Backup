@@ -77,7 +77,7 @@ export default function StatsBlock({
   ];
 
   return (
-    <section className="mx-auto max-w-[1600px] px-4 pt-5 sm:px-6 sm:pt-8 lg:px-8">
+    <section className="mx-auto w-full px-4 pt-5 sm:px-6 sm:pt-8 lg:px-8">
       {/* Top notice strip */}
       <div className="mb-3 flex items-center justify-between rounded-lg border border-white/10 bg-[#18181b]/80 px-3 py-2 text-xs sm:mb-4 sm:px-4 sm:py-2.5 sm:text-sm">
         <span className="flex items-center gap-2 text-gray-400">

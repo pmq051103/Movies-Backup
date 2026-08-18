@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { FaFilm, FaTheaterMasks } from 'react-icons/fa';
 
-import { MovieGrid, SpotlightGrid, CategoryBanner } from '@/components/movie';
+import { MovieGrid } from '@/components/movie';
 import { Pagination, GridSkeleton } from '@/components/common';
 import {
   useGenres,
@@ -62,7 +62,7 @@ function GenreListView() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
         <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t('nav.genres')}</h1>
         <GridSkeleton count={16} />
       </div>
@@ -70,7 +70,7 @@ function GenreListView() {
   }
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
       <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{t('nav.genres')}</h1>
 
       {genres.length === 0 ? (
@@ -168,7 +168,7 @@ function GenreDetailView({ slug }: { slug: string }) {
   );
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
       <Helmet>
         <title>{`${genreName} - ${t('seo.genresTitle')}`}</title>
         <meta name="description" content={`Phim thể loại ${genreName} — xem phim online miễn phí tại Không Gian Phim.`} />
@@ -177,22 +177,7 @@ function GenreDetailView({ slug }: { slug: string }) {
         <link rel="canonical" href={`https://khonggianphim.online/the-loai/${slug}`} />
       </Helmet>
 
-      <CategoryBanner
-        eyebrow={t('nav.genres')}
-        title={genreName}
-        description={`Tuyển tập phim ${genreName} đặc sắc nhất — chọn lọc kỹ càng, Vietsub, thuyết minh, lồng tiếng, cập nhật liên tục để bạn xem online miễn phí chất lượng cao.`}
-        totalItems={data?.pagination?.totalItems}
-        backdropUrl={
-          // Dùng phim thứ 2 làm ảnh nền banner, không dùng phim đầu tiên —
-          // phim đầu tiên là "hero" của khối SpotlightGrid to bên dưới, dùng
-          // chung ảnh sẽ bị trùng thumbnail giữa banner và khối đó.
-          displayMovies[1]?.thumb_url ??
-          displayMovies[1]?.poster_url ??
-          displayMovies[0]?.thumb_url ??
-          displayMovies[0]?.poster_url
-        }
-        icon={FaTheaterMasks}
-      />
+      <h1 className="mb-6 text-2xl font-bold sm:text-3xl">{genreName}</h1>
 
       {/* Type tabs. Hidden for synthetic slugs (Hoạt Hình / TV Shows) where
           the "type" filter isn't meaningful — the whole list IS one type. */}
@@ -218,23 +203,7 @@ function GenreDetailView({ slug }: { slug: string }) {
       {isLoading ? (
         <GridSkeleton />
       ) : (
-        <>
-          {page === 1 && displayMovies.length >= 5 && (
-            <div className="mb-8">
-              <SpotlightGrid
-                title={genreName}
-                movies={displayMovies.slice(0, 8)}
-              />
-            </div>
-          )}
-          <MovieGrid
-            movies={
-              page === 1 && displayMovies.length >= 5
-                ? displayMovies.slice(5, 23)
-                : displayMovies
-            }
-          />
-        </>
+        <MovieGrid movies={displayMovies} />
       )}
 
       {data?.pagination && data.pagination.totalPages > 1 && (

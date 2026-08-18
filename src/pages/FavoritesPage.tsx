@@ -29,7 +29,7 @@ export default function FavoritesPage() {
         transition={{ duration: 0.4 }}
         className="min-h-screen px-4 py-8 md:px-8 lg:px-12"
       >
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto w-full">
           <h1 className="mb-8 text-3xl font-bold text-white md:text-4xl">
             {t('favorites.title')}
           </h1>

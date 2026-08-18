@@ -108,7 +108,7 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
 
       <div className="relative w-full">
         {/* Big spotlight panel */}
-        <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] sm:h-[560px]">
+        <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] sm:h-[560px] lg:h-[620px] xl:h-[680px] 2xl:h-[740px]">
           <img
             key={active.slug}
             src={getMoviePoster(active.thumb_url, active.poster_url)}
@@ -122,9 +122,9 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#12131a] via-transparent to-transparent" />
 
           <div className="absolute inset-0 flex items-center">
-            <div className="max-w-xl px-6 sm:px-10">
+            <div className="max-w-xl px-6 sm:px-10 lg:max-w-2xl xl:max-w-3xl">
               <Link to={detailUrl}>
-                <h3 className="text-2xl font-bold text-white transition-colors hover:text-[#ffd166] sm:text-3xl">
+                <h3 className="text-2xl font-bold text-white transition-colors hover:text-[#ffd166] sm:text-3xl xl:text-4xl">
                   {active.name}
                 </h3>
               </Link>
@@ -248,7 +248,7 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
                   onClick={() => setActiveIdx(idx)}
                   aria-label={m.name}
                   aria-pressed={isActive}
-                  className={`relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-md shadow-lg shadow-black/40 transition-all duration-200 sm:w-[70px] ${
+                  className={`relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-md shadow-lg shadow-black/40 transition-all duration-200 sm:w-[70px] lg:w-[84px] xl:w-[96px] ${
                     isActive
                       ? "ring-2 ring-[#ffd166] ring-offset-2 ring-offset-[#0e0f16]"
                       : "opacity-70 hover:opacity-100"

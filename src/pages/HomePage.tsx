@@ -241,7 +241,7 @@ export default function HomePage() {
       <div className="min-h-screen bg-[#191b24] text-white">
         {heroSlides.length > 0 && <HeroBanner movies={heroSlides} />}
 
-        <div className="mx-auto max-w-[1600px] mt-8 space-y-14 px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full mt-8 space-y-14 px-4 pb-16 sm:px-6 lg:px-8">
           <motion.div
             variants={containerVariants}
             initial="hidden"

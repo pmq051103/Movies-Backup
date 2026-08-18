@@ -290,7 +290,7 @@ export default function SearchPage() {
         animate="visible"
         className="min-h-screen bg-gray-950 text-white"
       >
-        <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
           {/* ---- Search header (centered) ---- */}
           <div className="mx-auto max-w-2xl">
             <div className="mb-3 flex items-center justify-center gap-2">

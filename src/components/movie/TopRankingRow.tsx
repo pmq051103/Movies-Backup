@@ -259,7 +259,7 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
   return (
     <div
       ref={wrapRef}
-      className="group relative w-[190px] flex-shrink-0 sm:w-[240px]"
+      className="group relative w-[190px] flex-shrink-0 sm:w-[240px] lg:w-[260px] xl:w-[280px] 2xl:w-[300px]"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -361,7 +361,7 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
       <div className="mt-2 flex items-start gap-2">
         <span
           aria-hidden
-          className="select-none text-[2.2rem] font-black italic leading-none text-[#ffe9b3] sm:text-[2.6rem]"
+          className="select-none text-[2.2rem] font-black italic leading-none text-[#ffe9b3] sm:text-[2.6rem] xl:text-[2.9rem]"
           style={{ textShadow: "0 2px 5px rgba(0,0,0,0.45)" }}
         >
           {rank}

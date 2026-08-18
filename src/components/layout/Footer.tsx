@@ -41,7 +41,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="always-dark bg-[#0a0a0f] border-t border-white/5 mt-16 pb-12 w-full text-gray-300">
-      <div className="max-w-[1600px] mx-auto px-4 pt-10">
+      <div className="w-full mx-auto px-4 pt-10">
         {/* Badges row */}
         <div className="mb-10 flex flex-wrap items-center gap-3 text-left">
           <div className="inline-flex items-center gap-2 bg-[#8c171e] text-white px-4 py-2 rounded-full text-sm font-medium shadow-md">
