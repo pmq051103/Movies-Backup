@@ -1,4 +1,5 @@
-import { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -6,8 +7,7 @@ import {
   FaPlay,
   FaStar,
   FaHeart,
-  FaThumbsUp,
-  FaInfoCircle,
+  FaChevronDown,
 } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
@@ -51,11 +51,14 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
   const isFavorite = useFavoriteStore((s) => s.isFavorite);
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
 
   const posterSrc = getMoviePoster(movie.poster_url, movie.thumb_url);
+  const backdropSrc = getMoviePoster(movie.thumb_url, movie.poster_url);
   const rating = movie.tmdb?.vote_average
     ? parseFloat(String(movie.tmdb.vote_average))
     : null;
@@ -101,19 +104,57 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   const time = detail?.time || '';
   const description = detail?.content ? stripHtml(detail.content) : '';
   const genres = detail?.category ?? [];
-  const countries = detail?.country ?? [];
 
-  const onHoverStart = useCallback(() => setIsHovered(true), []);
-  const onHoverEnd = useCallback(() => setIsHovered(false), []);
+  // Compute the fixed popup position from the card's on-screen rect. The
+  // popup is wider than the card and centered on it, clamped to the viewport
+  // so it never overflows the edges. Rendered in a portal so no scroll
+  // container can clip it (fixes the "cut off at the top" issue).
+  const computePos = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const width = Math.min(Math.max(rect.width * 1.75, 340), window.innerWidth - 16);
+    let left = rect.left + rect.width / 2 - width / 2;
+    const margin = 8;
+    left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
+    const top = rect.top + rect.height / 2;
+    setPos({ left, top, width });
+  }, []);
+
+  const onHoverStart = useCallback(() => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+    openTimer.current = setTimeout(() => {
+      computePos();
+      setIsHovered(true);
+    }, 220);
+  }, [computePos]);
+
+  const onHoverEnd = useCallback(() => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+    setIsHovered(false);
+  }, []);
+
+  // Keep the popup glued to the card while scrolling/resizing.
+  useLayoutEffect(() => {
+    if (!isHovered) return;
+    const handler = () => computePos();
+    window.addEventListener('scroll', handler, true);
+    window.addEventListener('resize', handler);
+    return () => {
+      window.removeEventListener('scroll', handler, true);
+      window.removeEventListener('resize', handler);
+    };
+  }, [isHovered, computePos]);
 
   return (
     <div
-      className="group relative rounded-xl focus-within:ring-2 focus-within:ring-[#ffd166]"
+      ref={wrapRef}
+      className="group relative"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
+      {/* ── Base card: poster (2:3) + title underneath ── */}
       <div className="flex flex-col gap-2.5">
-        {/* Poster — aspect ratio 2:3, rounded-xl like tophim */}
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-white/[0.03] bg-gray-900">
           <Link to={detailUrl} aria-label={movie.name} title={movie.name} className="absolute inset-0 z-[1]">
             <img
@@ -121,7 +162,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
               alt={movie.name}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               onError={onImgError}
             />
           </Link>
@@ -156,150 +197,6 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
               {pin.label}
             </span>
           )}
-
-          {/* Hover preview — Netflix-style: 3 action buttons + title + meta +
-              description + genres + countries, framed on the poster image. */}
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => navigate(detailUrl)}
-                className="absolute inset-0 z-[3] flex cursor-pointer flex-col justify-end bg-[linear-gradient(to_top,rgba(10,11,16,0.98)_0%,rgba(10,11,16,0.82)_55%,rgba(10,11,16,0.15)_100%)]"
-              >
-                {/* Action buttons */}
-                <div className="flex items-center gap-2 px-2 pb-1.5">
-                  <Link
-                    to={watchUrl}
-                    title={t('movie.watchNow')}
-                    aria-label={t('movie.watchNow')}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[#0f111a] transition-transform hover:scale-110"
-                    style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
-                  >
-                    <FaPlay className="h-3 w-3 translate-x-0.5" />
-                  </Link>
-
-                  <button
-                    type="button"
-                    title={t('movie.addFavorite')}
-                    aria-label={t('movie.addFavorite')}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(movie);
-                    }}
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/40 bg-black/30 text-white backdrop-blur-sm transition-all hover:border-white hover:scale-110 active:scale-75"
-                  >
-                    <FaHeart
-                      className={`h-3.5 w-3.5 transition-colors ${
-                        isFavorite(movie.slug) ? 'fill-current text-[#fecf59]' : 'text-white'
-                      }`}
-                    />
-                  </button>
-
-                  <button
-                    type="button"
-                    title={liked ? t('common.unlike') : t('common.like')}
-                    aria-label={liked ? t('common.unlike') : t('common.like')}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLiked((v) => !v);
-                    }}
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/40 bg-black/30 text-white backdrop-blur-sm transition-all hover:border-white hover:scale-110 active:scale-75"
-                  >
-                    <FaThumbsUp
-                      className={`h-3.5 w-3.5 transition-colors ${
-                        liked ? 'fill-current text-[#fecf59]' : 'text-white'
-                      }`}
-                    />
-                  </button>
-
-                  <Link
-                    to={detailUrl}
-                    title={t('movie.moreInfo')}
-                    aria-label={t('movie.moreInfo')}
-                    onClick={(e) => e.stopPropagation()}
-                    className="ml-auto flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/40 bg-black/30 text-white backdrop-blur-sm transition-all hover:border-white hover:scale-110"
-                  >
-                    <FaInfoCircle className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-
-                {/* Title */}
-                <Link
-                  to={detailUrl}
-                  onClick={(e) => e.stopPropagation()}
-                  className="line-clamp-1 px-2 pb-0.5 text-[13px] font-semibold leading-snug text-white transition-colors hover:text-[#ffd166]"
-                >
-                  {movie.name}
-                </Link>
-
-                {/* Meta row */}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 pb-1 text-[10px] text-white/85">
-                  {rating !== null && rating > 0 && (
-                    <span className="flex items-center gap-0.5 font-bold text-[#fecf59]">
-                      <FaStar className="h-2 w-2" />
-                      {rating.toFixed(1)}
-                    </span>
-                  )}
-                  {movie.year > 0 && <span className="text-white/70">{movie.year}</span>}
-                  {time && <span className="text-white/70">{time}</span>}
-                  {quality && (
-                    <span className="rounded border border-white/25 px-1 py-[1px] font-semibold text-[#fecf59]">
-                      {quality}
-                    </span>
-                  )}
-                  {episodeBadge && <span className="text-white/70">{episodeBadge}</span>}
-                </div>
-
-                {/* Description */}
-                {description && (
-                  <p className="line-clamp-2 px-2 pb-1 text-[10px] leading-snug text-white/75">
-                    {description}
-                  </p>
-                )}
-
-                {/* Genres + countries */}
-                {(genres.length > 0 || countries.length > 0) && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 pb-2">
-                    {genres.slice(0, 3).map((g) => (
-                      <Link
-                        key={g.slug ?? g.name}
-                        to={`${ROUTES.GENRES}/${g.slug}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="rounded-full border border-white/20 bg-white/5 px-1.5 py-[1px] text-[9px] text-white/80 transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
-                      >
-                        {g.name}
-                      </Link>
-                    ))}
-                    {countries.slice(0, 2).map((c) => (
-                      <Link
-                        key={c.slug ?? c.name}
-                        to={`${ROUTES.COUNTRIES}/${c.slug}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="rounded-full border border-white/20 bg-white/5 px-1.5 py-[1px] text-[9px] text-white/80 transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
-                      >
-                        {c.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-
-                {/* Loading hint while detail is being fetched */}
-                {!detailData && (
-                  <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                      className="block h-3 w-3 rounded-full border-2 border-white/30 border-t-[#ffd166]"
-                    />
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Title below image — tophim style: left-aligned, no card bg */}
@@ -314,6 +211,161 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
           </p>
         </div>
       </div>
+
+      {/* ── Hover preview popup (desktop only) — Netflix / CôBe Phim style.
+          A large landscape card rendered in a PORTAL with fixed positioning
+          so it floats above everything and is never clipped by a scroll
+          container. Applied to every MovieCard. ── */}
+      {createPortal(
+        <AnimatePresence>
+          {isHovered && pos && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onMouseEnter={onHoverStart}
+              onMouseLeave={onHoverEnd}
+              onClick={() => navigate(detailUrl)}
+              style={{
+                position: 'fixed',
+                left: pos.left,
+                top: pos.top,
+                width: pos.width,
+                transform: 'translateY(-50%)',
+              }}
+              className="z-[100] hidden cursor-pointer overflow-hidden rounded-[18px] bg-[#2B2F42] shadow-[0_24px_60px_rgba(0,0,0,0.75)] md:block"
+            >
+              {/* Landscape backdrop banner */}
+              <div className="relative aspect-video w-full bg-black">
+                <img
+                  src={backdropSrc}
+                  alt={movie.name}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  onError={onImgError}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2B2F42] via-[#2B2F42]/20 to-transparent" />
+
+                {!detailData && (
+                  <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center">
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                      className="block h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-[#ffd166]"
+                    />
+                  </span>
+                )}
+              </div>
+
+              <div className="p-4">
+                {/* Title */}
+                <p className="truncate text-base font-bold text-white">{movie.name}</p>
+                {movie.origin_name && movie.origin_name !== movie.name && (
+                  <p className="truncate text-sm font-medium text-[#ffd166]">
+                    {movie.origin_name}
+                  </p>
+                )}
+
+                {/* Action buttons */}
+                <div className="mt-3 flex items-center gap-2">
+                  <Link
+                    to={watchUrl}
+                    onClick={(e) => e.stopPropagation()}
+                    title={t('movie.watchNow')}
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-[#0f1115] transition-transform hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
+                  >
+                    <FaPlay className="h-3 w-3" />
+                    {t('movie.watchNow')}
+                  </Link>
+
+                  <button
+                    type="button"
+                    title={t('movie.addFavorite')}
+                    aria-label={t('movie.addFavorite')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(movie);
+                    }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-90"
+                  >
+                    <FaHeart
+                      className={`h-4 w-4 ${isFavorite(movie.slug) ? 'text-[#ffd166]' : ''}`}
+                    />
+                  </button>
+
+                  <Link
+                    to={detailUrl}
+                    onClick={(e) => e.stopPropagation()}
+                    title={t('movie.moreInfo')}
+                    aria-label={t('movie.moreInfo')}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  >
+                    <FaChevronDown className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                {/* Meta row */}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-white/85">
+                  {rating !== null && rating > 0 && (
+                    <span className="flex items-center overflow-hidden rounded border border-[#f5c518]/60">
+                      <span className="bg-[#f5c518] px-1.5 py-0.5 text-black">IMDb</span>
+                      <span className="bg-[#f5c518]/10 px-1.5 py-0.5">
+                        {rating.toFixed(1)}
+                      </span>
+                    </span>
+                  )}
+                  {movie.year > 0 && (
+                    <span className="rounded border border-white/20 bg-black/30 px-1.5 py-0.5">
+                      {movie.year}
+                    </span>
+                  )}
+                  {quality && (
+                    <span className="rounded border border-white/20 bg-black/30 px-1.5 py-0.5">
+                      {quality.toUpperCase()}
+                    </span>
+                  )}
+                  {episodeBadge && (
+                    <span className="rounded border border-white/20 bg-black/30 px-1.5 py-0.5">
+                      {episodeBadge}
+                    </span>
+                  )}
+                  {time && (
+                    <span className="rounded border border-white/20 bg-black/30 px-1.5 py-0.5">
+                      {time}
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                {description && (
+                  <p className="mt-2.5 line-clamp-3 text-[12px] leading-snug text-white/70">
+                    {description}
+                  </p>
+                )}
+
+                {/* Genres */}
+                {genres.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {genres.slice(0, 4).map((g) => (
+                      <Link
+                        key={g.slug ?? g.name}
+                        to={`${ROUTES.GENRES}/${g.slug}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-full border border-white/15 bg-white/5 px-2 py-[2px] text-[11px] text-white/75 transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
+                      >
+                        {g.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Link } from 'react-router';
-import { FaHeart, FaInfoCircle, FaPlay } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaInfoCircle, FaPlay } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
 import { ROUTES } from '@/constants';
@@ -21,56 +21,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** tophim uses per-movie logo images; we emulate varied "logo" title
- *  styles per slide so each film gets a distinct look (different font,
- *  weight, case and colour — a bit like Netflix's per-title typography). */
-const TITLE_STYLES = [
-  {
-    fontFamily: "'Space Grotesk', 'Be Vietnam Pro', 'Inter', sans-serif",
-    fontWeight: 900,
-    textTransform: 'none',
-    fontStyle: 'normal',
-    letterSpacing: '-0.03em',
-    size: 'text-4xl md:text-6xl xl:text-7xl',
-    color: '#ffffff',
-  },
-  {
-    fontFamily: "'Be Vietnam Pro', 'Inter', sans-serif",
-    fontWeight: 800,
-    textTransform: 'uppercase',
-    fontStyle: 'normal',
-    letterSpacing: '0.08em',
-    size: 'text-3xl md:text-5xl xl:text-6xl',
-    color: '#ffffff',
-  },
-  {
-    fontFamily: "Georgia, 'Times New Roman', serif",
-    fontWeight: 700,
-    textTransform: 'none',
-    fontStyle: 'italic',
-    letterSpacing: '-0.01em',
-    size: 'text-4xl md:text-7xl xl:text-8xl',
-    color: 'linear-gradient(180deg, #ffffff 0%, #fecf59 100%)',
-  },
-  {
-    fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-    fontWeight: 900,
-    textTransform: 'uppercase',
-    fontStyle: 'normal',
-    letterSpacing: '-0.02em',
-    size: 'text-5xl md:text-7xl xl:text-8xl',
-    color: '#ffffff',
-  },
-  {
-    fontFamily: "'Trebuchet MS', 'Arial Narrow', 'Be Vietnam Pro', sans-serif",
-    fontWeight: 400,
-    textTransform: 'none',
-    fontStyle: 'italic',
-    letterSpacing: '0.01em',
-    size: 'text-4xl md:text-6xl xl:text-7xl',
-    color: '#ffe9b3',
-  },
-];
+
 
 const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
   const { t } = useTranslation();
@@ -138,7 +89,6 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
             const quality = movie.quality
               ? movie.quality.toUpperCase()
               : '';
-            const style = TITLE_STYLES[idx % TITLE_STYLES.length];
 
             return (
               <div
@@ -202,30 +152,26 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                         }`}
                       >
                         <div className="mb-1 md:mb-4 lg:mb-6">
-                          {/* Mobile title — always Space Grotesk bold */}
+                          {/* Mobile title */}
                           <h2
                             className="md:hidden text-lg font-bold text-white drop-shadow-md"
-                            style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}
+                            style={{ fontFamily: "var(--font-display), 'Be Vietnam Pro', sans-serif" }}
                           >
                             {movie.name}
                           </h2>
-                          {/* Desktop "logo" title — varied style per slide */}
+                          {/* Desktop title — consistent tophim-style display
+                              typography with a subtle gold-to-white sheen. */}
                           <h2
-                            className={`hidden md:block leading-none drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)] ${style.size}`}
+                            className="hidden md:block leading-[1.05] text-4xl md:text-6xl xl:text-7xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)]"
                             style={{
-                              fontFamily: style.fontFamily,
-                              fontWeight: style.fontWeight,
-                              fontStyle: style.fontStyle,
-                              textTransform: style.textTransform,
-                              letterSpacing: style.letterSpacing,
-                              ...(style.color.startsWith('linear-gradient')
-                                ? {
-                                    backgroundImage: style.color,
-                                    WebkitBackgroundClip: 'text',
-                                    backgroundClip: 'text',
-                                    color: 'transparent',
-                                  }
-                                : { color: style.color }),
+                              fontFamily: "var(--font-display), 'Be Vietnam Pro', 'Inter', sans-serif",
+                              fontWeight: 800,
+                              letterSpacing: '-0.02em',
+                              backgroundImage:
+                                'linear-gradient(180deg, #ffffff 0%, #fff 55%, #fecf59 100%)',
+                              WebkitBackgroundClip: 'text',
+                              backgroundClip: 'text',
+                              color: 'transparent',
                             }}
                           >
                             {movie.name}
@@ -305,13 +251,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                                 onClick={() => toggleFavorite(movie)}
                                 aria-label={t('nav.favorites')}
                               >
-                                <FaHeart
-                                  className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-500 ease-in-out group-hover/btn:scale-110 ${
-                                    isFavorite(movie.slug)
-                                      ? 'text-[#FECF59] fill-current'
-                                      : 'text-white fill-transparent'
-                                  }`}
-                                />
+                                {isFavorite(movie.slug) ? (
+                                  <FaHeart className="w-5 h-5 md:w-6 md:h-6 text-[#FECF59] transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
+                                ) : (
+                                  <FaRegHeart className="w-5 h-5 md:w-6 md:h-6 text-white transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
+                                )}
                               </button>
                               <div className="w-[1px] h-3/5 bg-white/20" />
                               <Link
@@ -347,13 +291,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                                 onClick={() => toggleFavorite(movie)}
                                 aria-label={t('nav.favorites')}
                               >
-                                <FaHeart
-                                  className={`w-5 h-5 transition-all duration-500 ease-in-out group-hover/btn:scale-110 ${
-                                    isFavorite(movie.slug)
-                                      ? 'text-[#FECF59] fill-current'
-                                      : 'text-white fill-transparent'
-                                  }`}
-                                />
+                                {isFavorite(movie.slug) ? (
+                                  <FaHeart className="w-5 h-5 text-[#FECF59] transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
+                                ) : (
+                                  <FaRegHeart className="w-5 h-5 text-white transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
+                                )}
                               </button>
                               <div className="w-[1px] h-3/5 bg-white/25" />
                               <Link

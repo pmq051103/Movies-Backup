@@ -86,7 +86,7 @@ const MovieRow: React.FC<MovieRowProps> = ({ title, movies, viewAllLink, limit }
         {/* Scrollable row */}
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-3 overflow-x-auto overflow-y-visible px-4 pb-2 pt-2 snap-x snap-mandatory md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.map((movie) => (
             <div
