@@ -7,7 +7,7 @@ import {
   FaPlay,
   FaStar,
   FaHeart,
-  FaChevronDown,
+  FaInfoCircle,
 } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
@@ -20,25 +20,6 @@ import type { MovieListItem } from '@/types';
 export interface MovieCardProps {
   movie: MovieListItem;
   index?: number;
-}
-
-/** Map a language label to the CôBe Phim colored bottom pin.
- *  Vietsub → grey "PĐ", Thuyết minh → green "TM", Lồng tiếng → blue "LT". */
-function langPin(lang?: string): { label: string; className: string } | null {
-  if (!lang) return null;
-  const l = lang.toLowerCase();
-  if (l.includes('thuyết minh') || l.includes('thuyet minh') || l.includes('tm'))
-    return { label: 'TM', className: 'bg-[#2ca35d]' };
-  if (l.includes('lồng tiếng') || l.includes('long tieng') || l.includes('lt'))
-    return { label: 'LT', className: 'bg-[#1667cf]' };
-  if (
-    l.includes('vietsub') ||
-    l.includes('phụ đề') ||
-    l.includes('phu de') ||
-    l.includes('pđ')
-  )
-    return { label: 'PĐ', className: 'bg-[#5e6070]' };
-  return null;
 }
 
 /** Strip HTML tags from the API `content` for a clean description. */
@@ -74,12 +55,12 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
       : `${ROUTES.MOVIE_DETAIL}/${movie.slug}`;
   const watchUrl = `${ROUTES.WATCH}/${movie.slug}${source !== 'phimapi' ? `?src=${source}` : ''}`;
 
-  // Fetch the full detail (description, genres, countries) lazily on hover,
+  // Fetch the full detail (description, genres, countries) eagerly so the
+  // hover popup always has description + genres ready (same as Top Phim),
   // cached by react-query so repeat hovers are instant.
   const { data: detailData } = useQuery({
     queryKey: [QUERY_KEYS.MOVIE_DETAIL, 'card', movie.slug, source],
     queryFn: () => getMovieDetailFromSource(movie.slug, source),
-    enabled: isHovered,
     staleTime: 10 * 60 * 1000,
   });
 
@@ -102,16 +83,37 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     return ep;
   })();
 
-  const pin = langPin(detail?.lang ?? movie.lang);
+  // Episode number used inside the lang pin(s) — e.g. "TM.43" = thuyết minh 43 tập.
+  const epNum = (() => {
+    const ep = detail?.episode_current ?? movie.episode_current;
+    if (!ep) return '';
+    const m = String(ep).match(/\d+/);
+    return m ? m[0] : '';
+  })();
+
+  // Language pins (PĐ / TM / LT), one badge per audio track with the episode
+  // count, matching the Top Phim cards.
+  const langPins = (() => {
+    const raw = ((detail?.lang ?? movie.lang) || '').toLowerCase();
+    const pins: { label: string; className: string }[] = [];
+    if (/lồng|long tieng|\blt\b/.test(raw)) pins.push({ label: 'LT', className: 'bg-[#1667cf]' });
+    if (/thuyết|thuyet|\btm\b/.test(raw)) pins.push({ label: 'TM', className: 'bg-[#2ca35d]' });
+    if (/vietsub|phụ đề|phu de|\bpđ\b|\bpd\b/.test(raw))
+      pins.push({ label: 'PĐ', className: 'bg-[#5e6070]' });
+    if (pins.length === 0 && raw) pins.push({ label: 'PĐ', className: 'bg-[#5e6070]' });
+    return pins;
+  })();
+
   const quality = detail?.quality || movie.quality;
   const time = detail?.time || '';
   const description = detail?.content ? stripHtml(detail.content) : '';
   const genres = detail?.category ?? [];
 
   // Compute the fixed popup position from the card's on-screen rect. The
-  // popup is wider than the card and centered on it, clamped to the viewport
-  // so it never overflows the edges. Rendered in a portal so no scroll
-  // container can clip it (fixes the "cut off at the top" issue).
+  // popup is wider than the card and centered on it horizontally, anchored
+  // just above the card, clamped to the viewport so it never overflows the
+  // edges. Rendered in a portal so no scroll container can clip it (fixes
+  // the "cut off at the top" issue).
   const computePos = useCallback(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -121,18 +123,16 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
 
-    // Vertical center for the popup, clamped so it always stays fully inside
-    // the viewport (below the fixed header, above the bottom edge) — rows
-    // near the top of the page used to push the popup off-screen, which
-    // made it look like hovering "did nothing".
+    // Anchor the popup so its top edge sits just above the top of the
+    // hovered card (instead of being centered on it). Clamped to keep the
+    // popup fully on-screen (below the fixed header, above the viewport
+    // bottom) for rows near the edges.
     const estimatedHeight = width * (9 / 16) + 260;
-    const half = estimatedHeight / 2;
     const headerClearance = 88;
     const bottomMargin = 16;
-    const minCenter = headerClearance + half;
-    const maxCenter = window.innerHeight - bottomMargin - half;
-    const rawCenter = rect.top + rect.height * 0.3;
-    const top = Math.min(Math.max(rawCenter, minCenter), Math.max(minCenter, maxCenter));
+    const maxTop = window.innerHeight - bottomMargin - estimatedHeight;
+    const rawTop = rect.top - 12;
+    const top = Math.min(Math.max(rawTop, headerClearance), Math.max(headerClearance, maxTop));
 
     setPos({ left, top, width });
   }, []);
@@ -207,13 +207,19 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
             </span>
           )}
 
-          {/* LT/TM/PĐ pin — bottom center */}
-          {pin && (
-            <span
-              className={`absolute bottom-0 left-1/2 z-[2] -translate-x-1/2 rounded-t-[.3rem] px-1.5 py-[2px] text-[10px] font-bold text-white shadow-[0_0_5px_2px_rgba(0,0,0,0.1)] ${pin.className}`}
-            >
-              {pin.label}
-            </span>
+          {/* LT/TM/PĐ pin(s) — bottom center, each with episode count (TM.43) */}
+          {langPins.length > 0 && (
+            <div className="absolute bottom-0 left-1/2 z-[2] flex -translate-x-1/2 items-center gap-1">
+              {langPins.map((p) => (
+                <span
+                  key={p.label}
+                  className={`rounded-t-[.3rem] px-1.5 py-[2px] text-[10px] font-bold text-white shadow-[0_0_5px_2px_rgba(0,0,0,0.1)] ${p.className}`}
+                >
+                  {p.label}
+                  {epNum ? `.${epNum}` : ''}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
@@ -250,7 +256,6 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
                 left: pos.left,
                 top: pos.top,
                 width: pos.width,
-                transform: 'translateY(-50%)',
               }}
               className="z-[100] hidden cursor-pointer overflow-hidden rounded-[18px] bg-[#2B2F42] shadow-[0_24px_60px_rgba(0,0,0,0.75)] md:block"
             >
@@ -320,7 +325,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
                     aria-label={t('movie.moreInfo')}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                   >
-                    <FaChevronDown className="h-4 w-4" />
+                    <FaInfoCircle className="h-4 w-4" />
                   </Link>
                 </div>
 

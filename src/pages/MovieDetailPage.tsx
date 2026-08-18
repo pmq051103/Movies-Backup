@@ -217,7 +217,7 @@ export default function MovieDetailPage() {
 
       <div className="min-h-screen bg-gray-950 text-white">
         {/* ---- Backdrop ---- */}
-        <div className="relative h-[50vh] w-full overflow-hidden sm:h-[60vh] lg:h-[70vh]">
+        <div className="relative h-[50vh] w-full overflow-hidden sm:h-[60vh] lg:h-[70vh] lg:-mt-[84px]">
           <img
             src={backdropUrl}
             alt={movie.name}

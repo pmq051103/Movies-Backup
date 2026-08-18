@@ -216,17 +216,16 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
 
-    // Clamp the vertical center so the popup always stays fully on-screen
-    // (below the fixed header, above the viewport bottom) instead of
-    // floating up out of view for rows near the top of the page.
+    // Anchor the popup so its top edge sits just above the top of the
+    // hovered card (instead of being centered on it). Clamped to keep the
+    // popup fully on-screen (below the fixed header, above the viewport
+    // bottom) for rows near the edges.
     const estimatedHeight = width * (9 / 16) + 280;
-    const half = estimatedHeight / 2;
     const headerClearance = 88;
     const bottomMargin = 16;
-    const minCenter = headerClearance + half;
-    const maxCenter = window.innerHeight - bottomMargin - half;
-    const rawCenter = rect.top + rect.height * 0.28;
-    const top = Math.min(Math.max(rawCenter, minCenter), Math.max(minCenter, maxCenter));
+    const maxTop = window.innerHeight - bottomMargin - estimatedHeight;
+    const rawTop = rect.top - 12;
+    const top = Math.min(Math.max(rawTop, headerClearance), Math.max(headerClearance, maxTop));
 
     setPos({ left, top, width });
   }, []);
@@ -273,10 +272,8 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
       >
         <div
           ref={posterRef}
-          className={`relative aspect-[2/3] w-full overflow-hidden bg-gray-900 transition-all duration-300 ease-out ${
-            isHovered
-              ? "-translate-y-1.5 scale-[1.03] shadow-2xl shadow-black/60"
-              : "shadow-md"
+          className={`relative aspect-[2/3] w-full overflow-hidden bg-gray-900 transition-shadow duration-300 ease-out ${
+            isHovered ? "shadow-2xl shadow-black/60" : "shadow-md"
           }`}
           style={clipPath ? { clipPath: `path('${clipPath}')` } : undefined}
         >
@@ -315,26 +312,49 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
                   className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white ${p.className}`}
                 >
                   {p.label}
-                  {epNum ? `. ${epNum}` : ""}
+                  {epNum ? `.${epNum}` : ""}
                 </span>
               ))}
             </div>
           )}
 
-          {/* Hover: gold ring that traces the exact clipped shape
-              (diagonal edge + rounded corners included) + dark overlay. */}
+          {/* Hover: dark overlay clipped to the dovetail shape. */}
           <div
             className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
               isHovered ? "opacity-100" : "opacity-0"
             }`}
             style={{
               clipPath: clipPath ? `path('${clipPath}')` : undefined,
-              boxShadow: "inset 0 0 0 3px #ffd166",
               background:
                 "linear-gradient(180deg, rgba(255,209,102,0.08) 0%, rgba(15,17,26,0.35) 100%)",
             }}
           />
         </div>
+
+        {/* Hover: gold ring that traces the exact clipped shape (diagonal
+            cut + rounded corners included). Rendered as an SVG sibling of
+            the clipped poster so the stroke follows the diagonal instead of
+            a plain box edge. */}
+        {posterSize && (
+          <svg
+            aria-hidden
+            className={`pointer-events-none absolute left-0 top-0 transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+            width={posterSize.w}
+            height={posterSize.h}
+            viewBox={`0 0 ${posterSize.w} ${posterSize.h}`}
+            preserveAspectRatio="none"
+          >
+            <path
+              d={clipPath ?? ""}
+              fill="none"
+              stroke="#ffd166"
+              strokeWidth={3}
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        )}
       </Link>
 
       {/* Info block BELOW poster: rank number + title/alias/tag chips */}
@@ -387,7 +407,6 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
                 left: pos.left,
                 top: pos.top,
                 width: pos.width,
-                transform: "translateY(-50%)",
               }}
               className="z-[100] hidden cursor-pointer overflow-hidden rounded-[18px] bg-[#2B2F42] shadow-[0_24px_60px_rgba(0,0,0,0.75)] md:block"
             >
@@ -537,7 +556,7 @@ const TopRankingRow: React.FC<TopRankingRowProps> = ({
     <section className="w-full">
       <SectionTitle title={title} viewAllLink={viewAllLink} />
 
-      <div className="no-scrollbar -mx-4 flex items-start gap-3 overflow-x-auto overflow-y-visible px-4 pb-4 pt-4 sm:mx-0 sm:gap-4 sm:px-0">
+      <div className="no-scrollbar -mx-4 flex items-start gap-2 overflow-x-auto overflow-y-visible px-4 pb-4 pt-4 sm:mx-0 sm:gap-3 sm:px-0">
         {items.map((m, idx) => (
           <TopRankingCard
             key={m._id ?? m.slug}

@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 import BottomNav from "@/components/layout/BottomNav";
 import WelcomeTip from "@/components/common/WelcomeTip";
 import ScrollToTopButton from "@/components/common/ScrollToTopButton";
+import { ROUTES } from "@/constants";
 import { useLanguageStore } from "@/store/useLanguageStore";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 
@@ -28,6 +29,11 @@ const MainLayout: React.FC = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [pathname]);
 
+  // The homepage hero pulls itself up under the transparent desktop header
+  // (lg:pt-0); every other page needs to clear the fixed header so page
+  // titles aren't hidden behind it.
+  const isHome = pathname === ROUTES.HOME;
+
   return (
     <>
       <Helmet>
@@ -37,7 +43,7 @@ const MainLayout: React.FC = () => {
       <div className="flex min-h-screen flex-col bg-gray-950 text-gray-100">
         <Header />
 
-        <main className="flex-1 pt-[68px] lg:pt-0">
+        <main className={`flex-1 pt-[76px] ${isHome ? "lg:pt-0" : "lg:pt-[84px]"}`}>
           <Outlet />
         </main>
 

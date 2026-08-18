@@ -1,7 +1,7 @@
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { FaPlay, FaHeart, FaExclamation } from "react-icons/fa";
+import { FaPlay, FaHeart, FaExclamation, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 
 import { ROUTES, QUERY_KEYS } from "@/constants";
@@ -39,6 +39,16 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
   const { t } = useTranslation();
   const items = movies.slice(0, limit);
   const [activeIdx, setActiveIdx] = useState(0);
+  const goToMovie = useCallback(
+    (dir: "prev" | "next") => {
+      setActiveIdx((prev) => {
+        if (items.length <= 1) return prev;
+        const step = dir === "next" ? 1 : -1;
+        return (prev + step + items.length) % items.length;
+      });
+    },
+    [items.length],
+  );
   // `active` may be undefined (empty `movies`) — every hook below must still
   // be called unconditionally (Rules of Hooks), so everything is guarded
   // instead of bailing out early before these run.
@@ -98,7 +108,7 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
 
       <div className="relative w-full">
         {/* Big spotlight panel */}
-        <div className="relative h-[420px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] sm:h-[440px]">
+        <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] sm:h-[560px]">
           <img
             key={active.slug}
             src={getMoviePoster(active.thumb_url, active.poster_url)}
@@ -201,6 +211,28 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Prev/next arrows — overlay the spotlight panel edges */}
+        {items.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => goToMovie("prev")}
+              aria-label={t("common.scrollLeft")}
+              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:left-5 sm:h-12 sm:w-12"
+            >
+              <FaChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => goToMovie("next")}
+              aria-label={t("common.scrollRight")}
+              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:right-5 sm:h-12 sm:w-12"
+            >
+              <FaChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          </>
+        )}
 
         {/* Thumbnail filmstrip — centered, straddling the boundary between
             the spotlight panel and the page background: half tucked inside

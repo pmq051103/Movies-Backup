@@ -43,7 +43,7 @@ export default function CategoryBanner({
     // <body> (see styles/index.css) keeps this from causing a horizontal
     // scrollbar on browsers where 100vw is a touch wider than the
     // scrollbar-adjusted viewport.
-    <div className="relative left-1/2 right-1/2 -mx-[50vw] mb-6 w-screen overflow-hidden bg-[#0f111a]">
+    <div className="relative left-1/2 right-1/2 -mx-[50vw] mb-6 w-screen overflow-hidden bg-[#0f111a] lg:-mt-[84px]">
       <div className="relative h-[280px] sm:h-[380px] lg:h-[440px]">
         {bg && (
           <img
