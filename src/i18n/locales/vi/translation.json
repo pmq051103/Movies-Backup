@@ -61,6 +61,7 @@
     "newToday": "Phim Mới Cập Nhật Hôm Nay",
     "nowPlaying": "Phim Chiếu Rạp",
     "upcoming": "Phim Sắp Chiếu",
+    "comingSoon": "Sắp chiếu",
     "topMustWatch": "Top Phim Đáng Xem",
     "topNowPlaying": "Top 10 Chiếu Rạp",
     "topVietCinema": "Phim Việt Chiếu Rạp",
@@ -109,6 +110,7 @@
     }
   },
   "watch": {
+    "language": "Ngôn ngữ",
     "server": "Máy Chủ",
     "episode": "Tập",
     "prevEpisode": "Tập Trước",
@@ -242,6 +244,7 @@
     "top100": "Top 100"
   },
   "pagination": {
+    "page": "Trang",
     "prev": "Trước",
     "next": "Tiếp",
     "first": "Đầu",

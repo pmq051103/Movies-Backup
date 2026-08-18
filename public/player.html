@@ -397,6 +397,7 @@
               hls.on(Hls.Events.MANIFEST_PARSED, function () {
                 hlsReady = true;
                 tryAddQuality();
+                tryAddAudioTrack();
               });
               hls.on(Hls.Events.LEVEL_LOADED, function () {
                 hlsReady = true;
@@ -405,7 +406,50 @@
               art.on('ready', function () {
                 artReady = true;
                 tryAddQuality();
+                tryAddAudioTrack();
               });
+
+              // ── Language (audio track) selector — "song ngữ" streams ──
+              // Only relevant for m3u8 files that embed more than one
+              // audio track (e.g. Vietsub + Thuyết Minh muxed together).
+              // Single-audio streams never show this — same guard style
+              // as the quality selector above.
+              var audioTrackAdded = false;
+
+              function audioTrackLabel(track, index) {
+                var raw = (track && (track.name || track.lang)) || '';
+                var lower = raw.toLowerCase();
+                if (/thuyết|thuyet|dub/.test(lower)) return 'Thuyết Minh';
+                if (/lồng|long tieng|lồng tiếng/.test(lower)) return 'Lồng Tiếng';
+                if (/vietsub|phụ đề|phu de|sub/.test(lower)) return 'Vietsub';
+                return raw || 'Ngôn ngữ ' + (index + 1);
+              }
+
+              function tryAddAudioTrack() {
+                if (audioTrackAdded || !hlsReady || !artReady) return;
+                var tracks = hls.audioTracks || [];
+                // Only show the picker when the stream actually has 2+
+                // muxed audio tracks to choose between.
+                if (tracks.length <= 1) return;
+                audioTrackAdded = true;
+
+                var items = tracks.map(function (tr, i) {
+                  return { html: audioTrackLabel(tr, i), value: i };
+                });
+
+                art.setting.add([{
+                  html: 'Ngôn ngữ',
+                  width: 200,
+                  tooltip: audioTrackLabel(tracks[hls.audioTrack] || tracks[0], hls.audioTrack || 0),
+                  selector: items.map(function (it) {
+                    return { html: it.html, value: it.value, default: it.value === hls.audioTrack };
+                  }),
+                  onSelect: function (item) {
+                    hls.audioTrack = item.value;
+                    return item.html;
+                  },
+                }]);
+              }
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
               video.src = url;
             }

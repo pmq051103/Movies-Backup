@@ -7,6 +7,7 @@ import {
   FaStepBackward,
   FaStepForward,
   FaServer,
+  FaLanguage,
   FaFilm,
   FaToggleOn,
   FaToggleOff,
@@ -57,6 +58,22 @@ function resolveIndices(
   }
 
   return { serverIndex, episodeIndex };
+}
+
+/**
+ * phimapi (and most Vietnamese sources) don't multiplex Vietsub + Thuyết
+ * Minh into one file — they publish them as separate "servers", each named
+ * after the audio/subtitle track it carries (e.g. "Vietsub #1", "Thuyết
+ * Minh #1"). When that's the case, the server tabs ARE the language
+ * switcher — this just detects it so the UI can say so instead of the
+ * generic "Server" label, which makes the switch easy to miss.
+ */
+function detectServerLanguage(serverName: string): string | null {
+  const raw = serverName.toLowerCase();
+  if (/thuyết|thuyet/.test(raw)) return 'Thuyết Minh';
+  if (/lồng|long tieng/.test(raw)) return 'Lồng Tiếng';
+  if (/vietsub|phụ đề|phu de/.test(raw)) return 'Vietsub';
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -786,27 +803,39 @@ export default function WatchPage() {
                 </div>
               </div>
 
-              {/* Server tabs */}
+              {/* Server tabs — doubles as the language switcher when the
+                  server names encode Vietsub / Thuyết Minh / Lồng Tiếng
+                  (the normal case for "song ngữ" titles: each language is
+                  a separate server, not a track inside one file). */}
               {episodes.length > 1 && (
                 <div className="mt-6">
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">
-                    {t('watch.server')}
+                    {episodes.some((ep) => detectServerLanguage(ep.server_name))
+                      ? t('watch.language', 'Ngôn ngữ')
+                      : t('watch.server')}
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {episodes.map((ep, idx) => (
-                      <button
-                        key={ep.server_name}
-                        onClick={() => navigateToEpisode(idx, 0)}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                          idx === serverIndex
-                            ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-                        }`}
-                      >
-                        <FaServer className="h-3 w-3" />
-                        {ep.server_name}
-                      </button>
-                    ))}
+                    {episodes.map((ep, idx) => {
+                      const lang = detectServerLanguage(ep.server_name);
+                      return (
+                        <button
+                          key={ep.server_name}
+                          onClick={() => navigateToEpisode(idx, 0)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                            idx === serverIndex
+                              ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                          }`}
+                        >
+                          {lang ? (
+                            <FaLanguage className="h-3.5 w-3.5" />
+                          ) : (
+                            <FaServer className="h-3 w-3" />
+                          )}
+                          {lang ?? ep.server_name}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

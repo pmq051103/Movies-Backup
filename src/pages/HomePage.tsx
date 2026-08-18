@@ -10,7 +10,7 @@ import {
   MovieRow,
   SpotlightGrid,
   TopRankingRow,
-  UpcomingRow,
+  MovieCarousel,
   AnimeShowcase,
 } from '@/components/movie';
 import { SectionTitle } from '@/components/common';
@@ -209,7 +209,7 @@ export default function HomePage() {
   );
 
   const nowPlayingSpotlight = useMemo(
-    () => nowPlayingData?.items?.slice(0, 8) ?? [],
+    () => nowPlayingData?.items?.slice(0, 10) ?? [],
     [nowPlayingData],
   );
 
@@ -318,13 +318,15 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Chiếu Rạp — Spotlight ── */}
+            {/* ── Phim Chiếu Rạp — landscape carousel, 10 titles ── */}
             {nowPlayingSpotlight.length >= 5 && (
               <motion.section variants={itemVariants}>
-                <SpotlightGrid
+                <MovieCarousel
                   title={t('home.nowPlaying', 'Phim Chiếu Rạp')}
                   movies={nowPlayingSpotlight}
                   viewAllLink={ROUTES.NOW_PLAYING}
+                  variant="cinema"
+                  limit={10}
                 />
               </motion.section>
             )}
@@ -422,13 +424,15 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Sắp Cập Nhật — trailer-only, horizontal scroll ── */}
+            {/* ── Phim Sắp Cập Nhật — trailer-only landscape carousel, 10 titles ── */}
             {upcomingData?.items && upcomingData.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <UpcomingRow
+                <MovieCarousel
                   title={t('home.upcoming', 'Phim Sắp Cập Nhật')}
                   movies={upcomingData.items}
                   viewAllLink={ROUTES.MOVIES + '?status=trailer'}
+                  variant="upcoming"
+                  limit={10}
                 />
               </motion.section>
             )}

@@ -5,6 +5,8 @@ export { default as HeroBanner } from './HeroBanner';
 export { default as FilterSidebar } from './FilterSidebar';
 export { default as EpisodeList } from './EpisodeList';
 export { default as SpotlightGrid } from './SpotlightGrid';
+export { default as MovieCarousel } from './MovieCarousel';
+export { default as MovieHoverWrapper } from './MovieHoverWrapper';
 export { default as TopRankingRow } from './TopRankingRow';
 export { default as AnimeShowcase } from './AnimeShowcase';
 export { default as UpcomingRow } from './UpcomingRow';

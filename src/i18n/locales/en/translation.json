@@ -61,6 +61,7 @@
     "newToday": "Updated Today",
     "nowPlaying": "Now In Theaters",
     "upcoming": "Upcoming Movies",
+    "comingSoon": "Coming soon",
     "topMustWatch": "Top Must-Watch Movies",
     "topNowPlaying": "Top 10 In Theaters",
     "topVietCinema": "Vietnamese Cinema",
@@ -109,6 +110,7 @@
     }
   },
   "watch": {
+    "language": "Language",
     "server": "Server",
     "episode": "Episode",
     "prevEpisode": "Previous Episode",
@@ -242,6 +244,7 @@
     "top100": "Top 100"
   },
   "pagination": {
+    "page": "Page",
     "prev": "Previous",
     "next": "Next",
     "first": "First",
