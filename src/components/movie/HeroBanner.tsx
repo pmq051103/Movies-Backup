@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Link } from 'react-router';
 import { FaHeart, FaRegHeart, FaInfoCircle, FaPlay } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
 import { ROUTES } from '@/constants';
 import { getMoviePoster, onImgError } from '@/utils';
@@ -27,7 +28,21 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isFavorite = useFavoriteStore((s) => s.isFavorite);
+  // Subscribe to the `favorites` array itself (not the `isFavorite` method —
+  // selecting a stable method reference never changes identity, so the
+  // component wouldn't re-render when favorites change and the heart icon
+  // would silently fail to flip after a click).
+  // NOTE: `useShallow` is required here — without it, `.map()` returns a new
+  // array reference on every render, which makes useSyncExternalStore think
+  // the store changed on every render and causes an infinite re-render loop
+  // ("Maximum update depth exceeded").
+  const favoriteSlugs = useFavoriteStore(
+    useShallow((s) => s.favorites.map((f) => f.slug)),
+  );
+  const isFavorite = useCallback(
+    (slug: string) => favoriteSlugs.includes(slug),
+    [favoriteSlugs],
+  );
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
 
   // Filter out slides with empty image URLs

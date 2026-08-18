@@ -11,6 +11,7 @@ import {
   SpotlightGrid,
   TopRankingRow,
   UpcomingRow,
+  AnimeShowcase,
 } from '@/components/movie';
 import { SectionTitle } from '@/components/common';
 import { useHistoryStore } from '@/store';
@@ -223,7 +224,7 @@ export default function HomePage() {
   );
 
   const animeSpotlight = useMemo(
-    () => anime?.items?.slice(0, 8) ?? [],
+    () => anime?.items?.slice(0, 13) ?? [],
     [anime],
   );
 
@@ -442,14 +443,14 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Anime — horizontal scroll ── */}
+            {/* ── Anime — big spotlight panel + thumbnail filmstrip ── */}
             {animeSpotlight.length >= 5 && (
               <motion.section variants={itemVariants}>
-                <MovieRow
+                <AnimeShowcase
                   title={t('home.anime')}
                   movies={animeSpotlight}
                   viewAllLink={ROUTES.ANIME}
-                  limit={10}
+                  limit={13}
                 />
               </motion.section>
             )}

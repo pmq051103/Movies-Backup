@@ -52,9 +52,12 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  const isFavorite = useFavoriteStore((s) => s.isFavorite);
+  // Subscribe to a value derived from `favorites`, not the `isFavorite`
+  // method — a selected method reference is stable across renders, so the
+  // component never re-rendered on toggle and the heart appeared "stuck".
+  const isFav = useFavoriteStore((s) => s.favorites.some((f) => f.slug === movie.slug));
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
 
   const posterSrc = getMoviePoster(movie.poster_url, movie.thumb_url);
@@ -113,27 +116,40 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     const el = wrapRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const width = Math.min(Math.max(rect.width * 1.75, 340), window.innerWidth - 16);
+    const width = Math.min(Math.max(rect.width * 2, 380), Math.min(440, window.innerWidth - 16));
     let left = rect.left + rect.width / 2 - width / 2;
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
-    // Anchor near the top of the card (shifted up) so the popup rises above it
-    // instead of sitting centered/below.
-    const top = rect.top + rect.height * 0.3;
+
+    // Vertical center for the popup, clamped so it always stays fully inside
+    // the viewport (below the fixed header, above the bottom edge) — rows
+    // near the top of the page used to push the popup off-screen, which
+    // made it look like hovering "did nothing".
+    const estimatedHeight = width * (9 / 16) + 260;
+    const half = estimatedHeight / 2;
+    const headerClearance = 88;
+    const bottomMargin = 16;
+    const minCenter = headerClearance + half;
+    const maxCenter = window.innerHeight - bottomMargin - half;
+    const rawCenter = rect.top + rect.height * 0.3;
+    const top = Math.min(Math.max(rawCenter, minCenter), Math.max(minCenter, maxCenter));
+
     setPos({ left, top, width });
   }, []);
 
   const onHoverStart = useCallback(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    openTimer.current = setTimeout(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => {
       computePos();
       setIsHovered(true);
-    }, 220);
+    }, 200);
   }, [computePos]);
 
   const onHoverEnd = useCallback(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    setIsHovered(false);
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    // Small grace period so moving the cursor from the card up into the
+    // floating popup doesn't close it before it arrives.
+    hoverTimer.current = setTimeout(() => setIsHovered(false), 180);
   }, []);
 
   // Keep the popup glued to the card while scrolling/resizing.
@@ -293,7 +309,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-90"
                   >
                     <FaHeart
-                      className={`h-4 w-4 ${isFavorite(movie.slug) ? 'text-[#ffd166]' : ''}`}
+                      className={`h-4 w-4 ${isFav ? 'text-[#ffd166]' : ''}`}
                     />
                   </button>
 

@@ -29,10 +29,65 @@ function stripHtml(html: string | undefined): string {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
-// Diagonal top-edge clips (dovetail): left poster of a pair slopes down to
-// the right, right poster slopes down to the left.
-const CLIP_LEFT = "polygon(0 0, 100% 11%, 100% 100%, 0 100%)";
-const CLIP_RIGHT = "polygon(0 11%, 100% 0, 100% 100%, 0 100%)";
+// Diagonal dovetail slope as a fraction of the card height (matches the old
+// polygon's "11%" edge drop).
+const SLOPE = 0.11;
+
+/**
+ * Build a rounded-corner "dovetail" clip path (an SVG path, used with
+ * `clip-path: path(...)`) for a WxH box whose top edge is a diagonal
+ * instead of a straight line. `leanRight` slopes the top edge down to the
+ * right (like `polygon(0 0, 100% 11%, 100% 100%, 0 100%)`); otherwise it
+ * slopes down to the left. All four corners — including the two corners
+ * that meet the diagonal — get a real rounded radius, and because the
+ * exact same path is reused for the hover ring, the gold border traces
+ * the whole shape (diagonal included) instead of stopping at a plain box.
+ */
+function dovetailPath(width: number, height: number, radius: number, leanRight: boolean): string {
+  const s = height * SLOPE;
+  const r = Math.max(0, Math.min(radius, height / 3, width / 3));
+
+  // Corner points of the un-rounded shape.
+  const top1 = leanRight ? { x: 0, y: 0 } : { x: 0, y: s };
+  const top2 = leanRight ? { x: width, y: s } : { x: width, y: 0 };
+  const bottomRight = { x: width, y: height };
+  const bottomLeft = { x: 0, y: height };
+
+  // Unit vector along the diagonal top edge.
+  const dx = top2.x - top1.x;
+  const dy = top2.y - top1.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+
+  // Point just before top1 along the left vertical edge (coming up from
+  // the bottom-left corner), and just after top1 along the diagonal.
+  const beforeTop1 = { x: 0, y: top1.y + r };
+  const afterTop1 = { x: top1.x + ux * r, y: top1.y + uy * r };
+
+  // Point just before top2 along the diagonal, and just after along the
+  // right vertical edge.
+  const beforeTop2 = { x: top2.x - ux * r, y: top2.y - uy * r };
+  const afterTop2 = { x: top2.x, y: top2.y + r };
+
+  const beforeBR = { x: width, y: height - r };
+  const afterBR = { x: width - r, y: height };
+
+  const beforeBL = { x: r, y: height };
+  const afterBL = { x: 0, y: height - r };
+
+  return [
+    `M ${beforeTop1.x} ${beforeTop1.y}`,
+    `Q ${top1.x} ${top1.y} ${afterTop1.x} ${afterTop1.y}`,
+    `L ${beforeTop2.x} ${beforeTop2.y}`,
+    `Q ${top2.x} ${top2.y} ${afterTop2.x} ${afterTop2.y}`,
+    `L ${beforeBR.x} ${beforeBR.y}`,
+    `Q ${bottomRight.x} ${bottomRight.y} ${afterBR.x} ${afterBR.y}`,
+    `L ${beforeBL.x} ${beforeBL.y}`,
+    `Q ${bottomLeft.x} ${bottomLeft.y} ${afterBL.x} ${afterBL.y}`,
+    "Z",
+  ].join(" ");
+}
 
 interface TopRankingCardProps {
   movie: MovieListItem;
@@ -47,17 +102,40 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isFavorite = useFavoriteStore((s) => s.isFavorite);
+  // Subscribe to a derived value, not the `isFavorite` method itself — a
+  // selected method reference is stable across renders, so the component
+  // never re-rendered on toggle and the heart button looked broken.
+  const isFav = useFavoriteStore((s) => s.favorites.some((f) => f.slug === m.slug));
   const toggleFavorite = useFavoriteStore((s) => s.toggleFavorite);
 
   const [isHovered, setIsHovered] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [posterSize, setPosterSize] = useState<{ w: number; h: number } | null>(null);
 
   const leanRight = rank % 2 === 1; // Top 1,3,5… lean toward the right
-  // Keep the diagonal top edge even on hover (only the scale/lift changes).
-  const clip = leanRight ? CLIP_LEFT : CLIP_RIGHT;
+
+  // Measure the poster box so the diagonal clip path (and the hover ring
+  // that traces it) is computed in real pixels and stays correct at any
+  // width/breakpoint.
+  useLayoutEffect(() => {
+    const el = posterRef.current;
+    if (!el) return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) setPosterSize({ w: r.width, h: r.height });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const clipPath = posterSize
+    ? dovetailPath(posterSize.w, posterSize.h, 16, leanRight)
+    : undefined;
 
   const source: MovieSource =
     ((m as MovieListItem & { _source?: MovieSource })._source) ?? "phimapi";
@@ -67,15 +145,19 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
       : `${ROUTES.MOVIE_DETAIL}/${m.slug}`;
   const watchUrl = `${ROUTES.WATCH}/${m.slug}${source !== "phimapi" ? `?src=${source}` : ""}`;
 
+  // Fetched eagerly (not gated by hover) — the age/season/country chips sit
+  // in the always-visible info block under the poster, not just the hover
+  // popup, so they need to be ready before the user ever hovers. Limited to
+  // 10 items per row and cached for 10 minutes, so this stays cheap.
   const { data: detailData } = useQuery({
     queryKey: [QUERY_KEYS.MOVIE_DETAIL, "toprank", m.slug, source],
     queryFn: () => getMovieDetailFromSource(m.slug, source),
-    enabled: isHovered,
     staleTime: 10 * 60 * 1000,
   });
   const detail = detailData?.movie;
   const description = detail?.content ? stripHtml(detail.content) : "";
   const genres = detail?.category ?? [];
+  const countryName = detail?.country?.[0]?.name ?? "";
 
   // Age rating chip (e.g. "T16"). Prefer detail data; fall back to a sensible
   // default so the chip always shows like the reference site.
@@ -102,16 +184,26 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
     ? parseFloat(String(m.tmdb.vote_average))
     : null;
 
-  const langLabel = m.lang
-    ? m.lang.toLowerCase().includes("lồng")
-      ? "LT"
-      : m.lang.toLowerCase().includes("thuyết")
-        ? "TM"
-        : "PĐ"
-    : "";
   const epNum = m.episode_current
     ? (m.episode_current.match(/\d+/) ?? [""])[0]
     : "";
+
+  // Language/episode pin(s) — CôBe Phim shows one or two colored badges
+  // (PĐ = Vietsub, TM = Thuyết minh, LT = Lồng tiếng) with the episode
+  // count. The API only exposes a single `lang` string + one episode
+  // count, so when it mentions several audio tracks we render one badge
+  // per track using that same count as the best available approximation.
+  const langPins = (() => {
+    const raw = (m.lang || "").toLowerCase();
+    const pins: { label: string; className: string }[] = [];
+    if (/lồng|long tieng|\blt\b/.test(raw)) pins.push({ label: "LT", className: "bg-[#1667cf]" });
+    if (/thuyết|thuyet|\btm\b/.test(raw)) pins.push({ label: "TM", className: "bg-[#2ca35d]" });
+    if (/vietsub|phụ đề|phu de|\bpđ\b|\bpd\b/.test(raw))
+      pins.push({ label: "PĐ", className: "bg-[#5e6070]" });
+    if (pins.length === 0 && m.lang) pins.push({ label: "PĐ", className: "bg-[#5e6070]" });
+    return pins;
+  })();
+  const isBilingual = langPins.length > 1;
 
   const computePos = useCallback(() => {
     const el = wrapRef.current;
@@ -119,27 +211,39 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
     const rect = el.getBoundingClientRect();
     // Free-floating popup width (not tied to the narrow poster width) so it
     // can grow like the regular movie-card popups.
-    const width = Math.min(400, window.innerWidth - 16);
+    const width = Math.min(420, window.innerWidth - 16);
     let left = rect.left + rect.width / 2 - width / 2;
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
-    // Anchor the popup near the top of the poster (shifted up) instead of the
-    // vertical center, so it rises above the card instead of covering it.
-    const top = rect.top + rect.height * 0.28;
+
+    // Clamp the vertical center so the popup always stays fully on-screen
+    // (below the fixed header, above the viewport bottom) instead of
+    // floating up out of view for rows near the top of the page.
+    const estimatedHeight = width * (9 / 16) + 280;
+    const half = estimatedHeight / 2;
+    const headerClearance = 88;
+    const bottomMargin = 16;
+    const minCenter = headerClearance + half;
+    const maxCenter = window.innerHeight - bottomMargin - half;
+    const rawCenter = rect.top + rect.height * 0.28;
+    const top = Math.min(Math.max(rawCenter, minCenter), Math.max(minCenter, maxCenter));
+
     setPos({ left, top, width });
   }, []);
 
   const onHoverStart = useCallback(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    openTimer.current = setTimeout(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => {
       computePos();
       setIsHovered(true);
-    }, 220);
+    }, 200);
   }, [computePos]);
 
   const onHoverEnd = useCallback(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    setIsHovered(false);
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    // Small grace period so moving from the card into the floating popup
+    // doesn't close it before the cursor arrives.
+    hoverTimer.current = setTimeout(() => setIsHovered(false), 180);
   }, []);
 
   useLayoutEffect(() => {
@@ -153,35 +257,35 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
     };
   }, [isHovered, computePos]);
 
-  const isBilingual = !!m.lang && /lồng|thuyết|song|vietsub \+/i.test(m.lang);
-
   return (
     <div
       ref={wrapRef}
-      className="group relative w-[168px] flex-shrink-0 sm:w-[215px]"
+      className="group relative w-[190px] flex-shrink-0 sm:w-[240px]"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
-      {/* Poster — tall (2:3), upright, rounded; subtle diagonal top edge */}
+      {/* Poster — tall (2:3), bigger; diagonal dovetail top edge with real
+          rounded corners (SVG clip-path, not a plain polygon). */}
       <Link
         to={detailUrl}
         aria-label={`${rank}. ${m.name}`}
         className={`relative block ${isHovered ? "z-30" : "z-10"}`}
       >
         <div
-          className={`relative aspect-[2/3] w-full overflow-hidden rounded-[16px] bg-gray-900 transition-all duration-300 ease-out ${
+          ref={posterRef}
+          className={`relative aspect-[2/3] w-full overflow-hidden bg-gray-900 transition-all duration-300 ease-out ${
             isHovered
               ? "-translate-y-1.5 scale-[1.03] shadow-2xl shadow-black/60"
               : "shadow-md"
           }`}
-          style={{ clipPath: clip, WebkitClipPath: clip }}
+          style={clipPath ? { clipPath: `path('${clipPath}')` } : undefined}
         >
           <img
             src={getMoviePoster(m.poster_url, m.thumb_url)}
             alt={m.name}
             loading="lazy"
-            width={240}
-            height={360}
+            width={280}
+            height={420}
             className="h-full w-full object-cover"
             onError={onImgError}
           />
@@ -201,50 +305,65 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
             </span>
           )}
 
-          {/* Green lang/episode pill — bottom-left */}
-          {(langLabel || epNum) && (
-            <span className="absolute bottom-1.5 left-1.5 rounded-md bg-[#2ca35d] px-1.5 py-0.5 text-[10px] font-bold text-white">
-              {langLabel}
-              {epNum ? `.${epNum}` : ""}
-            </span>
+          {/* Lang/episode pill(s) — bottom-right, one badge per audio
+              track (PĐ / TM / LT), like the reference site. */}
+          {langPins.length > 0 && (
+            <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+              {langPins.map((p) => (
+                <span
+                  key={p.label}
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white ${p.className}`}
+                >
+                  {p.label}
+                  {epNum ? `. ${epNum}` : ""}
+                </span>
+              ))}
+            </div>
           )}
 
-          {/* Hover: light-blue ring + dark overlay on the poster image */}
+          {/* Hover: gold ring that traces the exact clipped shape
+              (diagonal edge + rounded corners included) + dark overlay. */}
           <div
-            className={`pointer-events-none absolute inset-0 rounded-[16px] transition-opacity duration-300 ${
+            className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
               isHovered ? "opacity-100" : "opacity-0"
             }`}
             style={{
-              boxShadow: "inset 0 0 0 2px #5edfff",
+              clipPath: clipPath ? `path('${clipPath}')` : undefined,
+              boxShadow: "inset 0 0 0 3px #ffd166",
               background:
-                "linear-gradient(180deg, rgba(94,223,255,0.10) 0%, rgba(15,17,26,0.35) 100%)",
+                "linear-gradient(180deg, rgba(255,209,102,0.08) 0%, rgba(15,17,26,0.35) 100%)",
             }}
           />
         </div>
       </Link>
 
       {/* Info block BELOW poster: rank number + title/alias/tag chips */}
-      <div className="mt-1.5 flex items-start gap-1.5">
+      <div className="mt-2 flex items-start gap-2">
         <span
           aria-hidden
-          className="select-none text-[2rem] font-black italic leading-none text-[#ffe9b3] sm:text-[2.4rem]"
+          className="select-none text-[2.2rem] font-black italic leading-none text-[#ffe9b3] sm:text-[2.6rem]"
           style={{ textShadow: "0 2px 5px rgba(0,0,0,0.45)" }}
         >
           {rank}
         </span>
         <div className="min-w-0 flex-1">
           <Link to={detailUrl} className="block">
-            <p className="truncate text-[13px] font-semibold text-white transition-colors group-hover:text-[#ffd166]">
+            <p className="truncate text-[14px] font-semibold text-white transition-colors group-hover:text-[#ffd166]">
               {m.name}
             </p>
             {m.origin_name && (
-              <p className="truncate text-[11px] text-white/50">
+              <p className="truncate text-[12px] text-white/50">
                 {m.origin_name}
               </p>
             )}
           </Link>
           <div className="mt-0.5 truncate text-[11px] text-white/60">
-            {[ageLabel, seasonLabel, m.episode_current || (m.year > 0 ? m.year : null)]
+            {[
+              ageLabel,
+              seasonLabel,
+              m.episode_current || (m.year > 0 ? String(m.year) : null),
+              countryName,
+            ]
               .filter(Boolean)
               .join(" • ")}
           </div>
@@ -321,7 +440,7 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                   >
                     <FaHeart
-                      className={`h-4 w-4 ${isFavorite(m.slug) ? "text-[#ffd166]" : ""}`}
+                      className={`h-4 w-4 ${isFav ? "text-[#ffd166]" : ""}`}
                     />
                   </button>
                   <Link
@@ -418,7 +537,7 @@ const TopRankingRow: React.FC<TopRankingRowProps> = ({
     <section className="w-full">
       <SectionTitle title={title} viewAllLink={viewAllLink} />
 
-      <div className="no-scrollbar -mx-4 flex items-start gap-2 overflow-x-auto overflow-y-visible px-4 pb-4 pt-4 sm:mx-0 sm:px-0">
+      <div className="no-scrollbar -mx-4 flex items-start gap-3 overflow-x-auto overflow-y-visible px-4 pb-4 pt-4 sm:mx-0 sm:gap-4 sm:px-0">
         {items.map((m, idx) => (
           <TopRankingCard
             key={m._id ?? m.slug}
