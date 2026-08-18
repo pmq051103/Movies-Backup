@@ -117,7 +117,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     let left = rect.left + rect.width / 2 - width / 2;
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
-    const top = rect.top + rect.height / 2;
+    // Anchor near the top of the card (shifted up) so the popup rises above it
+    // instead of sitting centered/below.
+    const top = rect.top + rect.height * 0.3;
     setPos({ left, top, width });
   }, []);
 

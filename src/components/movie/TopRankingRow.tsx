@@ -30,10 +30,9 @@ function stripHtml(html: string | undefined): string {
 }
 
 // Diagonal top-edge clips (dovetail): left poster of a pair slopes down to
-// the right, right poster slopes down to the left; on hover → full rectangle.
+// the right, right poster slopes down to the left.
 const CLIP_LEFT = "polygon(0 0, 100% 11%, 100% 100%, 0 100%)";
 const CLIP_RIGHT = "polygon(0 11%, 100% 0, 100% 100%, 0 100%)";
-const CLIP_NONE = "polygon(0 0, 100% 0, 100% 100%, 0 100%)";
 
 interface TopRankingCardProps {
   movie: MovieListItem;
@@ -57,7 +56,8 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
 
   const leanRight = rank % 2 === 1; // Top 1,3,5… lean toward the right
-  const clip = isHovered ? CLIP_NONE : leanRight ? CLIP_LEFT : CLIP_RIGHT;
+  // Keep the diagonal top edge even on hover (only the scale/lift changes).
+  const clip = leanRight ? CLIP_LEFT : CLIP_RIGHT;
 
   const source: MovieSource =
     ((m as MovieListItem & { _source?: MovieSource })._source) ?? "phimapi";
@@ -123,7 +123,9 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
     let left = rect.left + rect.width / 2 - width / 2;
     const margin = 8;
     left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
-    const top = rect.top + rect.height / 2;
+    // Anchor the popup near the top of the poster (shifted up) instead of the
+    // vertical center, so it rises above the card instead of covering it.
+    const top = rect.top + rect.height * 0.28;
     setPos({ left, top, width });
   }, []);
 
@@ -156,7 +158,7 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
   return (
     <div
       ref={wrapRef}
-      className="group relative w-[150px] flex-shrink-0 sm:w-[195px]"
+      className="group relative w-[168px] flex-shrink-0 sm:w-[215px]"
       onMouseEnter={onHoverStart}
       onMouseLeave={onHoverEnd}
     >
@@ -206,6 +208,18 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
               {epNum ? `.${epNum}` : ""}
             </span>
           )}
+
+          {/* Hover: light-blue ring + dark overlay on the poster image */}
+          <div
+            className={`pointer-events-none absolute inset-0 rounded-[16px] transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+            style={{
+              boxShadow: "inset 0 0 0 2px #5edfff",
+              background:
+                "linear-gradient(180deg, rgba(94,223,255,0.10) 0%, rgba(15,17,26,0.35) 100%)",
+            }}
+          />
         </div>
       </Link>
 
@@ -229,27 +243,10 @@ const TopRankingCard: React.FC<TopRankingCardProps> = ({
               </p>
             )}
           </Link>
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            {ageLabel && (
-              <span className="rounded bg-white/10 px-1.5 py-[1px] text-[10px] font-bold text-white/85">
-                {ageLabel}
-              </span>
-            )}
-            {seasonLabel && (
-              <span className="rounded bg-white/10 px-1.5 py-[1px] text-[10px] font-semibold text-white/70">
-                {seasonLabel}
-              </span>
-            )}
-            {m.episode_current && (
-              <span className="rounded bg-white/10 px-1.5 py-[1px] text-[10px] font-semibold text-white/70">
-                {m.episode_current}
-              </span>
-            )}
-            {!ageLabel && m.quality && (
-              <span className="rounded bg-white/10 px-1.5 py-[1px] text-[10px] font-bold text-white/80">
-                {m.quality.toUpperCase()}
-              </span>
-            )}
+          <div className="mt-0.5 truncate text-[11px] text-white/60">
+            {[ageLabel, seasonLabel, m.episode_current || (m.year > 0 ? m.year : null)]
+              .filter(Boolean)
+              .join(" • ")}
           </div>
         </div>
       </div>
