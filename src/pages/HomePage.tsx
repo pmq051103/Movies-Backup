@@ -3,8 +3,9 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaPlay, FaChevronRight } from 'react-icons/fa';
+import { FaChevronRight, FaPlay } from 'react-icons/fa';
 
+import { CategoryPills } from '@/components/home';
 import {
   HeroBanner,
   MovieRow,
@@ -30,11 +31,11 @@ import { getMoviePoster, onImgError } from '@/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
@@ -43,7 +44,7 @@ const itemVariants = {
 };
 
 /* -------------------------------------------------------------------------- */
-/* TopicCards — "Bạn đang quan tâm gì?" gradient cards (tophim feature)       */
+/* TopicCards — "Bạn đang quan tâm gì?" gradient cards (cobephim.biz feature) */
 /* -------------------------------------------------------------------------- */
 
 const TOPIC_GRADIENTS = [
@@ -59,7 +60,7 @@ interface TopicCardsProps {
 }
 
 function TopicCards({ genres }: TopicCardsProps) {
-  const topics = genres.slice(0, 5);
+  const topics = genres.slice(0, 6);
 
   if (topics.length === 0) return null;
 
@@ -69,7 +70,7 @@ function TopicCards({ genres }: TopicCardsProps) {
         Bạn đang quan tâm gì?
       </h2>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {topics.map((genre, idx) => (
           <Link
             key={genre._id}
@@ -91,9 +92,7 @@ function TopicCards({ genres }: TopicCardsProps) {
           </Link>
         ))}
 
-        {/* "+N chủ đề" card — mobile/tablet only (tophim renders it below lg
-            and swaps in the wide "Tất cả chủ đề" button on desktop). */}
-        {genres.length > 5 && (
+        {genres.length > 6 && (
           <Link
             to={ROUTES.GENRES}
             className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:hidden"
@@ -103,7 +102,7 @@ function TopicCards({ genres }: TopicCardsProps) {
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_58%)]" />
             <div className="relative z-10 flex h-full w-full flex-col justify-between">
               <h3 className="line-clamp-2 select-none pr-[28%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
-                +{genres.length - 5} chủ đề
+                +{genres.length - 6} chủ đề
               </h3>
               <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
                 Khám phá
@@ -113,14 +112,6 @@ function TopicCards({ genres }: TopicCardsProps) {
           </Link>
         )}
       </div>
-
-      <Link
-        to={ROUTES.GENRES}
-        className="mt-2 hidden h-[48px] w-full items-center justify-center gap-2 rounded-[18px] bg-[#303443] text-[16px] font-extrabold text-white shadow-lg transition-colors hover:bg-[#3b4052] sm:mt-3 sm:w-[220px] lg:flex lg:h-[60px] lg:w-[260px] lg:text-[20px]"
-      >
-        <span>Tất cả chủ đề</span>
-        <FaChevronRight className="h-4 w-4" />
-      </Link>
     </section>
   );
 }
@@ -248,17 +239,21 @@ export default function HomePage() {
         <meta property="og:type" content="website" />
       </Helmet>
 
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-[#191b24] text-white">
         {heroSlides.length > 0 && <HeroBanner movies={heroSlides} />}
 
-        <div className="container mx-auto mt-12 space-y-14 px-4 pb-16 sm:px-6">
+        <div className="container mx-auto px-4 sm:px-6">
+          <CategoryPills />
+        </div>
+
+        <div className="container mx-auto mt-8 space-y-14 px-4 pb-16 sm:px-6">
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="space-y-14"
           >
-            {/* ── Bạn đang quan tâm gì? (tophim topic cards) ── */}
+            {/* ── Bạn đang quan tâm gì? (cobephim topic cards) ── */}
             <motion.section variants={itemVariants}>
               <TopicCards genres={genres ?? []} />
             </motion.section>
@@ -350,7 +345,7 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Top Phim Bom Tấn — Ranking ⭐ ── */}
+            {/* ── Top 10 Bom Tấn — Ranking ⭐ ── */}
             {blockbusterData?.items && blockbusterData.items.length > 5 && (
               <motion.section variants={itemVariants}>
                 <TopRankingRow
