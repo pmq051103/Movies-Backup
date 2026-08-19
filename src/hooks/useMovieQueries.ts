@@ -11,6 +11,7 @@ import {
   getMovieCatalogStats,
 } from '@/api';
 import { getMovieDetailFromSource } from '@/api/dualSource';
+import { getTmdbExtras } from '@/api/tmdbService';
 import type {
   MovieListItem,
   MovieDetailResponse,
@@ -23,7 +24,7 @@ import type {
   Country,
 } from '@/types';
 import type { MovieSource, CatalogStats } from '@/api/dualSource';
-import { IMAGE_BASE_URL, QUERY_KEYS } from '@/constants';
+import { IMAGE_BASE_URL, QUERY_KEYS, TMDB_API_KEY } from '@/constants';
 
 /* ------------------------------------------------------------------ */
 /* Image URL helpers                                                   */
@@ -177,6 +178,26 @@ export function useMovieDetail(slug?: string, prefer?: MovieSource) {
     queryKey: [QUERY_KEYS.MOVIE_DETAIL, slug, prefer],
     queryFn: () => getMovieDetail(slug!, prefer),
     enabled: !!slug,
+  });
+}
+
+/**
+ * Cast (with real headshot photos) + real per-title gallery images
+ * (backdrops/posters) + trailer/clip videos — all sourced from TMDB via
+ * the tmdb id the phim API already attaches to every title
+ * (`movie.tmdb.id`). The phim APIs themselves only return actor names as
+ * plain strings and no real per-movie gallery/video data, so this backs
+ * the actual headshots on "Diễn viên" and the real images/videos on
+ * "Gallery". Resolves to empty arrays (never errors) when there's no API
+ * key configured or no tmdb id on the movie; the UI falls back to
+ * name-only placeholders / the backdrop+poster pair then.
+ */
+export function useTmdbExtras(tmdbId?: string | number | null, tmdbType?: string | null) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.TMDB_CAST, tmdbId, tmdbType],
+    queryFn: () => getTmdbExtras(tmdbId, tmdbType),
+    enabled: !!tmdbId && !!TMDB_API_KEY,
+    staleTime: 24 * 60 * 60 * 1000, // 24h — cast/gallery data rarely changes
   });
 }
 

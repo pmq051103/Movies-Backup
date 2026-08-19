@@ -22,7 +22,12 @@ import {
 import { MovieRow } from '@/components/movie';
 import { DetailSkeleton } from '@/components/common';
 import { useFavoriteStore, useHistoryStore } from '@/store';
-import { useMovieDetail, useMoviesByGenre } from '@/hooks';
+import { useMovieDetail, useMoviesByGenre, useTmdbExtras } from '@/hooks';
+import {
+  getTmdbImageUrl,
+  getYoutubeThumbnail,
+  getYoutubeWatchUrl,
+} from '@/api/tmdbService';
 import { ROUTES, MOVIE_STATUS } from '@/constants';
 import { getImageUrl, getMoviePoster, onImgError } from '@/utils';
 import { trackMovieView } from '@/lib/analytics';
@@ -64,6 +69,17 @@ export default function MovieDetailPage() {
   const { data: recommendationsData } = useMoviesByGenre(firstCategorySlug, {
     page: 1,
   });
+
+  // Real actor headshots + real per-title gallery images/videos (the phim
+  // API only gives plain-text names and a lone backdrop+poster) — resolved
+  // via TMDB using the tmdb id the phim API already attaches to this
+  // title. Empty arrays when no API key/tmdb id — UI falls back to
+  // placeholders / the backdrop+poster pair in that case.
+  const { data: tmdbExtras } = useTmdbExtras(movie?.tmdb?.id, movie?.tmdb?.type);
+  const tmdbCast = tmdbExtras?.cast ?? [];
+  const tmdbBackdrops = tmdbExtras?.backdrops ?? [];
+  const tmdbPosters = tmdbExtras?.posters ?? [];
+  const tmdbVideos = tmdbExtras?.videos ?? [];
 
   // Records a "movie view" (name + genres + countries) once per session
   // for the /thong-ke dashboard's "Xem theo thể loại/quốc gia" panels.
@@ -350,7 +366,7 @@ export default function MovieDetailPage() {
 
         {/* ---- Main content ---- */}
         <div className="relative z-10 mx-auto -mt-28 w-full max-w-[1400px] px-4 pb-12 sm:-mt-36 sm:px-6 lg:-mt-48 lg:px-8">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
             {/* ================================================================
                 LEFT SIDEBAR — poster + all metadata (badges, genres, status,
                 overview, meta list). Mirrors CôBePhim's detail page, where
@@ -580,7 +596,7 @@ export default function MovieDetailPage() {
                 {/* Action buttons + rating badge.
                     Mobile: "Xem Ngay" full-width on its own row, then
                     Yêu thích / Chia sẻ / Đánh giá together on the next row. */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                   {hasEpisodes && (
                     <button
                       type="button"
@@ -604,39 +620,40 @@ export default function MovieDetailPage() {
                     </button>
                   )}
 
-                  <div className="flex items-center justify-between gap-5 sm:justify-end sm:gap-6">
-                    <button
-                      type="button"
-                      onClick={handleToggleFavorite}
-                      title={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
-                      aria-label={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
-                      className="group/btn flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
-                    >
-                      {isFav ? (
-                        <FaHeart className="h-5 w-5 text-[#FECF59] transition-transform duration-300 group-hover/btn:scale-110" />
-                      ) : (
-                        <FaRegHeart className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110" />
-                      )}
-                      <span className="text-xs font-medium">{t('movie.addFavorite')}</span>
-                    </button>
+                  <button
+                    type="button"
+                    onClick={handleToggleFavorite}
+                    title={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
+                    aria-label={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
+                    className="group/btn flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
+                  >
+                    {isFav ? (
+                      <FaHeart className="h-5 w-5 text-[#FECF59] transition-transform duration-300 group-hover/btn:scale-110" />
+                    ) : (
+                      <FaRegHeart className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110" />
+                    )}
+                    <span className="text-xs font-medium">{t('movie.addFavorite')}</span>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={handleShare}
-                      title={t('movie.share')}
-                      className="group/share flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
-                    >
-                      <FaShareAlt className="h-4 w-4 transition-transform duration-300 group-hover/share:scale-110" />
-                      <span className="relative text-xs font-medium">
-                        {copied ? t('common.copied') : t('movie.share')}
-                      </span>
-                    </button>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    title={t('movie.share')}
+                    className="group/share flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
+                  >
+                    <FaShareAlt className="h-4 w-4 transition-transform duration-300 group-hover/share:scale-110" />
+                    <span className="relative text-xs font-medium">
+                      {copied ? t('common.copied') : t('movie.share')}
+                    </span>
+                  </button>
 
-                    {/* Rating badge — blue bg, star + number only */}
-                    <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#01B4E4] px-3.5 text-sm font-bold text-white">
-                      <FaStar className="h-3.5 w-3.5" />
-                      {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
-                    </div>
+                  {/* Rating badge — blue bg, star + number only. Pinned to
+                      the far right on desktop (ml-auto); wraps down with
+                      favorite/share on mobile, right after Watch Now's
+                      own full-width line. */}
+                  <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#01B4E4] px-3.5 text-sm font-bold text-white sm:ml-auto">
+                    <FaStar className="h-3.5 w-3.5" />
+                    {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
                   </div>
                 </div>
 
@@ -867,45 +884,163 @@ export default function MovieDetailPage() {
                     ))}
 
                   {/* ---- Gallery ---- */}
-                  {activeTab === 'gallery' && (
-                    <div>
-                      <h3 className="mb-3 text-base font-bold text-white">Ảnh</h3>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {[backdropUrl, posterUrl]
-                          .filter((src, i, arr) => src && arr.indexOf(src) === i)
-                          .map((src) => (
-                            <img
-                              key={src}
-                              src={src}
-                              alt={movie.name}
-                              className="aspect-video w-full rounded-lg object-cover"
-                              onError={onImgError}
-                            />
-                          ))}
+                  {activeTab === 'gallery' && (() => {
+                    // Video row: our own trailer_url first (if any), then
+                    // TMDB's trailers/clips/teasers for this exact title.
+                    const videoItems: { key: string; title: string; href: string; thumb: string }[] = [];
+                    if (movie.trailer_url) {
+                      // Support both a full watch URL and a bare video id.
+                      const ytMatch = movie.trailer_url.match(
+                        /(?:youtu\.be\/|[?&]v=|embed\/)([a-zA-Z0-9_-]{6,})/,
+                      );
+                      const ytKey = ytMatch?.[1];
+                      videoItems.push({
+                        key: 'trailer-own',
+                        title: 'Trailer',
+                        href: movie.trailer_url,
+                        thumb: ytKey ? getYoutubeThumbnail(ytKey) : backdropUrl,
+                      });
+                    }
+                    tmdbVideos.forEach((v) => {
+                      videoItems.push({
+                        key: v.id,
+                        title: v.name || v.type,
+                        href: getYoutubeWatchUrl(v.key),
+                        thumb: getYoutubeThumbnail(v.key),
+                      });
+                    });
+
+                    // Image row: real per-title backdrops + posters from
+                    // TMDB when available; falls back to the one backdrop +
+                    // one poster we already have otherwise.
+                    const tmdbImages = [
+                      ...tmdbBackdrops.map((img) => getTmdbImageUrl(img.file_path, 'w1280')),
+                      ...tmdbPosters.map((img) => getTmdbImageUrl(img.file_path, 'w780')),
+                    ].filter((src): src is string => !!src);
+                    const imageItems =
+                      tmdbImages.length > 0
+                        ? tmdbImages
+                        : [backdropUrl, posterUrl].filter(
+                            (src, i, arr) => src && arr.indexOf(src) === i,
+                          );
+
+                    if (videoItems.length === 0 && imageItems.length === 0) return null;
+
+                    return (
+                      <div className="space-y-8">
+                        {/* ---- Video ---- */}
+                        {videoItems.length > 0 && (
+                          <div>
+                            <h3 className="mb-3 text-base font-bold text-white">Video</h3>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                              {videoItems.map((v) => (
+                                <a
+                                  key={v.key}
+                                  href={v.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={v.title}
+                                  className="group/vid relative aspect-video overflow-hidden rounded-lg bg-[#1f2128]"
+                                >
+                                  <img
+                                    src={v.thumb}
+                                    alt={v.title}
+                                    loading="lazy"
+                                    className="h-full w-full object-cover transition duration-300 group-hover/vid:scale-105"
+                                    onError={onImgError}
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover/vid:bg-black/35">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FECF59] text-[#0f1115] shadow-lg">
+                                      <FaPlay className="h-3.5 w-3.5" />
+                                    </span>
+                                  </div>
+                                  <span className="absolute bottom-2 left-2.5 right-2.5 truncate text-xs font-semibold text-white drop-shadow">
+                                    {v.title}
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ---- Ảnh — mỗi ảnh full-width, 1 ảnh / dòng ---- */}
+                        {imageItems.length > 0 && (
+                          <div>
+                            <h3 className="mb-3 text-base font-bold text-white">Ảnh</h3>
+                            <div className="space-y-3">
+                              {imageItems.map((src) => (
+                                <img
+                                  key={src}
+                                  src={src}
+                                  alt={movie.name}
+                                  loading="lazy"
+                                  className="w-full rounded-lg object-cover"
+                                  onError={onImgError}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* ---- Diễn viên ---- */}
                   {activeTab === 'cast' && (
                     <div>
                       <h3 className="mb-4 text-base font-bold text-white">Diễn viên</h3>
-                      {movie.actor && movie.actor.length > 0 ? (
+                      {tmdbCast.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
+                          {tmdbCast.map((person) => {
+                            const photoUrl = getTmdbImageUrl(person.profile_path);
+                            return (
+                              <div
+                                key={person.id}
+                                className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center transition-colors hover:bg-white/[0.07]"
+                              >
+                                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white/10 text-lg font-bold text-white/40 ring-1 ring-white/10 sm:h-20 sm:w-20">
+                                  {photoUrl ? (
+                                    <img
+                                      src={photoUrl}
+                                      alt={person.name}
+                                      className="h-full w-full object-cover"
+                                      loading="lazy"
+                                      onError={onImgError}
+                                    />
+                                  ) : (
+                                    <FaUserCircle className="h-full w-full text-white/25" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium text-white/85 sm:text-sm">
+                                    {person.name}
+                                  </p>
+                                  {person.character && (
+                                    <p className="mt-0.5 text-[11px] text-white/40 sm:text-xs">
+                                      {person.character}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : movie.actor && movie.actor.length > 0 ? (
                         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
                           {movie.actor.map((name) => (
                             <div
                               key={name}
                               className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center transition-colors hover:bg-white/[0.07]"
                             >
-                              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gray-700 text-lg font-bold text-gray-300 ring-1 ring-white/10 sm:h-20 sm:w-20">
-                                <FaUserCircle className="h-full w-full text-gray-600" />
+                              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white/10 text-lg font-bold text-white/40 ring-1 ring-white/10 sm:h-20 sm:w-20">
+                                <FaUserCircle className="h-full w-full text-white/25" />
                               </div>
-                              <span className="text-xs text-gray-300 sm:text-sm">{name}</span>
+                              <span className="text-xs text-white/75 sm:text-sm">{name}</span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="py-8 text-center text-sm text-gray-500">
+                        <p className="py-8 text-center text-sm text-white/40">
                           Chưa có thông tin diễn viên
                         </p>
                       )}

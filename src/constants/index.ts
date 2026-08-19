@@ -35,6 +35,29 @@ export const OPHIM_IMAGE_BASE_URL: string =
   (import.meta.env.VITE_OPHIM_IMAGE_BASE_URL as string | undefined) ??
   'https://img.ophim1.com/uploads/movies';
 
+/**
+ * TMDB (themoviedb.org) config — used ONLY to fetch actor headshot photos
+ * for the "Diễn viên" tab on the movie detail page. The phim APIs
+ * (phimapi/vsmov/ophim) only give actor NAMES as plain strings, no photos,
+ * so real headshots have to come from TMDB's `/credits` endpoint, matched
+ * via the `movie.tmdb.id` + `movie.tmdb.type` the phim API already returns.
+ *
+ * Get a free API Read Access Token (v4 auth — the long JWT-style string)
+ * at https://www.themoviedb.org/settings/api (no approval wait, instant)
+ * and set VITE_TMDB_API_KEY in your `.env`. Without it, the cast tab
+ * gracefully falls back to icon placeholders — nothing breaks.
+ */
+export const TMDB_API_KEY: string =
+  (import.meta.env.VITE_TMDB_API_KEY as string | undefined) ?? '';
+
+export const TMDB_BASE_URL: string =
+  (import.meta.env.VITE_TMDB_BASE_URL as string | undefined) ??
+  'https://api.themoviedb.org/3';
+
+export const TMDB_IMAGE_BASE_URL: string =
+  (import.meta.env.VITE_TMDB_IMAGE_BASE_URL as string | undefined) ??
+  'https://image.tmdb.org/t/p';
+
 export const API_TIMEOUT = 15000;
 
 /**
@@ -126,6 +149,7 @@ export const QUERY_KEYS = {
   MOVIES_BY_COUNTRY: 'moviesByCountry',
   ACTOR_DETAIL: 'actorDetail',
   CATALOG_STATS: 'catalogStats',
+  TMDB_CAST: 'tmdbCast',
 } as const;
 
 /* ------------------------------------------------------------------ */
