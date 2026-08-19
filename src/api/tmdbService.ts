@@ -28,19 +28,38 @@ export interface TmdbVideo {
   type: string;
 }
 
+/**
+ * TMDB crew member (director, writer, etc.) as returned by `/credits`.
+ * Only the fields the UI actually uses are declared.
+ */
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  profile_path: string | null;
+}
+
 export interface TmdbExtras {
   cast: TmdbCastMember[];
+  directors: TmdbCrewMember[];
   backdrops: TmdbImage[];
   posters: TmdbImage[];
   videos: TmdbVideo[];
 }
 
-const EMPTY_EXTRAS: TmdbExtras = { cast: [], backdrops: [], posters: [], videos: [] };
+const EMPTY_EXTRAS: TmdbExtras = { cast: [], directors: [], backdrops: [], posters: [], videos: [] };
 
 interface TmdbDetailsWithExtras {
-  credits?: { cast?: TmdbCastMember[] };
+  credits?: { cast?: TmdbCastMember[]; crew?: TmdbCrewMember[] };
   images?: { backdrops?: TmdbImage[]; posters?: TmdbImage[] };
   videos?: { results?: TmdbVideo[] };
+}
+
+/** True for TMDB's older 32-char hex v3 API key (goes in `?api_key=`),
+ *  false for the long v4 JWT "Read Access Token" (goes in the
+ *  `Authorization: Bearer` header). Configuring either one now works. */
+function isV3ApiKey(key: string): boolean {
+  return /^[a-f0-9]{32}$/i.test(key);
 }
 
 /** Resolve a TMDB profile_path/file_path into a full, ready-to-render image URL. */
@@ -87,25 +106,28 @@ export async function getTmdbExtras(
   const mediaType = tmdbType === 'tv' ? 'tv' : 'movie';
 
   try {
-    const res = await fetch(
+    // TMDB has two API key formats: the short 32-char hex "v3" key (must be
+    // sent as a `?api_key=` query param) and the long JWT-style "v4 Read
+    // Access Token" (must be sent as an `Authorization: Bearer` header).
+    // Using the wrong scheme for a given key returns 401 Unauthorized —
+    // detect which one is configured instead of assuming v4.
+    const v3 = isV3ApiKey(TMDB_API_KEY);
+    const url =
       `${TMDB_BASE_URL}/${mediaType}/${tmdbId}` +
-        `?language=vi-VN&append_to_response=credits,images,videos` +
-        `&include_image_language=vi,en,null`,
-      {
-        headers: {
-          // TMDB's "API Read Access Token" (v4 auth) — the long JWT-style
-          // string from Settings → API. Must go in the Authorization
-          // header, NOT as an `?api_key=` query param (that's the shorter,
-          // separate v3 key and returns 401).
-          Authorization: `Bearer ${TMDB_API_KEY}`,
-          accept: 'application/json',
-        },
-      },
-    );
+      `?language=vi-VN&append_to_response=credits,images,videos` +
+      `&include_image_language=vi,en,null` +
+      (v3 ? `&api_key=${TMDB_API_KEY}` : '');
+
+    const res = await fetch(url, {
+      headers: v3
+        ? { accept: 'application/json' }
+        : { Authorization: `Bearer ${TMDB_API_KEY}`, accept: 'application/json' },
+    });
     if (!res.ok) return EMPTY_EXTRAS;
     const data = (await res.json()) as TmdbDetailsWithExtras;
     return {
       cast: (data.credits?.cast ?? []).slice(0, 18),
+      directors: (data.credits?.crew ?? []).filter((c) => c.job === 'Director'),
       backdrops: (data.images?.backdrops ?? []).slice(0, 12),
       posters: (data.images?.posters ?? []).slice(0, 8),
       videos: (data.videos?.results ?? [])

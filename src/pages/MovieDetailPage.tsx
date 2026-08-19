@@ -18,6 +18,7 @@ import {
   FaServer,
   FaStar,
   FaChevronDown,
+  FaCheckCircle,
 } from 'react-icons/fa';
 import { MovieRow } from '@/components/movie';
 import { DetailSkeleton } from '@/components/common';
@@ -77,6 +78,7 @@ export default function MovieDetailPage() {
   // placeholders / the backdrop+poster pair in that case.
   const { data: tmdbExtras } = useTmdbExtras(movie?.tmdb?.id, movie?.tmdb?.type);
   const tmdbCast = tmdbExtras?.cast ?? [];
+  const tmdbDirectors = tmdbExtras?.directors ?? [];
   const tmdbBackdrops = tmdbExtras?.backdrops ?? [];
   const tmdbPosters = tmdbExtras?.posters ?? [];
   const tmdbVideos = tmdbExtras?.videos ?? [];
@@ -124,6 +126,17 @@ export default function MovieDetailPage() {
     if (n.includes('song ngữ')) return FaLanguage;
     if (n.includes('phụ đề') || n.includes('vietsub')) return FaClosedCaptioning;
     return FaServer;
+  };
+
+  // Solid base color for a "bản chiếu" (version) card — the same color is
+  // reused (at full opacity fading to transparent) as a gradient layered
+  // over the poster photo, so the color visually melts into the image
+  // instead of stopping at a hard edge.
+  const episodeServerCardColor = (serverName: string) => {
+    const n = serverName.toLowerCase();
+    if (n.includes('thuyết minh') || n.includes('lồng tiếng'))
+      return { solid: '#1c7a4b', soft: '#238f59' };
+    return { solid: '#494c58', soft: '#585b68' };
   };
 
   const handleEpisodeSelect = useCallback(
@@ -247,6 +260,13 @@ export default function MovieDetailPage() {
         : movie.status === MOVIE_STATUS.TRAILER
           ? 'Sắp chiếu'
           : '';
+  // "Phần N" chip — best-effort, parsed straight out of the title/alias
+  // text itself (there's no dedicated season field in the API).
+  const seasonLabel = (() => {
+    const src = `${movie.name} ${movie.origin_name ?? ''}`;
+    const m = src.match(/Phần\s*(\d+)/i) ?? src.match(/Season\s*(\d+)/i);
+    return m ? `Phần ${m[1]}` : '';
+  })();
   // Colored quality chip — 4K/FHD/HD get distinct accent colors.
   const qualityStyle = (() => {
     const q = (movie.quality || '').toUpperCase();
@@ -365,7 +385,7 @@ export default function MovieDetailPage() {
         </div>
 
         {/* ---- Main content ---- */}
-        <div className="relative z-10 mx-auto -mt-28 w-full max-w-[1400px] px-4 pb-12 sm:-mt-36 sm:px-6 lg:-mt-48 lg:px-8">
+        <div className="relative z-10 mx-auto -mt-28 w-full max-w-[1800px] px-4 pb-12 sm:-mt-36 sm:px-6 lg:-mt-48 lg:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
             {/* ================================================================
                 LEFT SIDEBAR — poster + all metadata (badges, genres, status,
@@ -381,8 +401,9 @@ export default function MovieDetailPage() {
               animate="visible"
               custom={0}
             >
-              {/* Poster */}
-              <div className="relative w-40 sm:w-56 lg:w-full">
+              {/* Poster — centered on mobile, left-aligned once the sidebar
+                  becomes a fixed-width column on desktop. */}
+              <div className="relative mx-auto w-40 sm:w-56 lg:mx-0 lg:w-full">
                 <img
                   src={posterUrl}
                   alt={movie.name}
@@ -396,8 +417,10 @@ export default function MovieDetailPage() {
                 )}
               </div>
 
-              {/* Title */}
-              <div>
+              {/* Title — centered on mobile (matches the centered poster
+                  above it); left-aligned on desktop like the rest of the
+                  sidebar's movie info. */}
+              <div className="text-center lg:text-left">
                 <h1
                   className="text-2xl leading-[1.05] drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)] sm:text-3xl"
                   style={{
@@ -477,6 +500,11 @@ export default function MovieDetailPage() {
                       {movie.year}
                     </span>
                   )}
+                  {seasonLabel && (
+                    <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                      {seasonLabel}
+                    </span>
+                  )}
                   {statusLabel && (
                     <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
                       {statusLabel}
@@ -513,12 +541,26 @@ export default function MovieDetailPage() {
                   </div>
                 )}
 
-                {/* Progress / status pill — "Trạng thái: X / Y" */}
-                {(hasEpisodeList || (isSeries && !isTrailerOnly)) && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400">
-                    <FaClock className="text-[10px]" />
-                    {t('movie.status')}: {movie.episode_current}
-                    {movie.episode_total ? ` / ${movie.episode_total}` : ''}
+                {/* Progress / status pill — green + checkmark once
+                    complete (matches the reference site), amber + clock
+                    while still ongoing. */}
+                {(hasEpisodeList || (isSeries && !isTrailerOnly)) && movie.episode_current && (
+                  <div
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      movie.status === MOVIE_STATUS.COMPLETED
+                        ? 'bg-emerald-500/15 text-emerald-400'
+                        : 'bg-amber-500/15 text-amber-400'
+                    }`}
+                  >
+                    {movie.status === MOVIE_STATUS.COMPLETED ? (
+                      <FaCheckCircle className="text-[10px]" />
+                    ) : (
+                      <FaClock className="text-[10px]" />
+                    )}
+                    {/* `episode_current` already comes fully formatted from
+                        the API (e.g. "Hoàn Tất (38/38)", "Tập 6") — don't
+                        wrap it in another "Hoàn Tất (...)" or it duplicates. */}
+                    {movie.episode_current}
                   </div>
                 )}
 
@@ -610,50 +652,62 @@ export default function MovieDetailPage() {
                         navigate(`${ROUTES.WATCH}/${movie.slug}${qs}`);
                       }}
                       title={t('movie.watchNow')}
-                      className="flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-full px-6 font-bold text-[#0f1115] shadow-[0_0_15px_rgba(254,207,89,0.5)] transition-transform hover:scale-[1.02] sm:h-14 sm:w-auto"
+                      className="flex h-12 w-full shrink-0 items-center justify-center gap-2.5 rounded-full px-6 font-bold text-[#0f1115] shadow-[0_0_15px_rgba(254,207,89,0.5)] transition-transform hover:scale-[1.02] sm:h-16 sm:w-auto sm:px-10 sm:text-lg"
                       style={{
                         background: 'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
                       }}
                     >
-                      <FaPlay className="text-sm" />
+                      <FaPlay className="text-sm sm:text-base" />
                       {t('movie.watchNow')}
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={handleToggleFavorite}
-                    title={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
-                    aria-label={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
-                    className="group/btn flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
-                  >
-                    {isFav ? (
-                      <FaHeart className="h-5 w-5 text-[#FECF59] transition-transform duration-300 group-hover/btn:scale-110" />
-                    ) : (
-                      <FaRegHeart className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110" />
-                    )}
-                    <span className="text-xs font-medium">{t('movie.addFavorite')}</span>
-                  </button>
+                  {/* Yêu thích / Chia sẻ / rating — one shared-height group.
+                      On mobile this becomes its own full-width row, evenly
+                      spaced (space-between); on desktop it dissolves back
+                      into the row via `sm:contents` so "Đánh giá" keeps
+                      pinning to the far right (ml-auto) like before. */}
+                  <div className="flex w-full items-center justify-between sm:contents">
+                    <button
+                      type="button"
+                      onClick={handleToggleFavorite}
+                      title={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
+                      aria-label={isFav ? t('movie.removeFavorite') : t('movie.addFavorite')}
+                      className="group/btn flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
+                    >
+                      {/* Same icon box size as the share button below so the
+                          labels line up on the same baseline. */}
+                      <span className="flex h-5 w-5 items-center justify-center sm:h-6 sm:w-6">
+                        {isFav ? (
+                          <FaHeart className="h-5 w-5 text-[#FECF59] transition-transform duration-300 group-hover/btn:scale-110 sm:h-6 sm:w-6" />
+                        ) : (
+                          <FaRegHeart className="h-5 w-5 transition-transform duration-300 group-hover/btn:scale-110 sm:h-6 sm:w-6" />
+                        )}
+                      </span>
+                      <span className="text-xs font-medium sm:text-sm">{t('movie.addFavorite')}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    title={t('movie.share')}
-                    className="group/share flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
-                  >
-                    <FaShareAlt className="h-4 w-4 transition-transform duration-300 group-hover/share:scale-110" />
-                    <span className="relative text-xs font-medium">
-                      {copied ? t('common.copied') : t('movie.share')}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      title={t('movie.share')}
+                      className="group/share flex flex-col items-center gap-1.5 text-white/80 transition-colors hover:text-white"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center sm:h-6 sm:w-6">
+                        <FaShareAlt className="h-4 w-4 transition-transform duration-300 group-hover/share:scale-110 sm:h-5 sm:w-5" />
+                      </span>
+                      <span className="relative text-xs font-medium sm:text-sm">
+                        {copied ? t('common.copied') : t('movie.share')}
+                      </span>
+                    </button>
 
-                  {/* Rating badge — blue bg, star + number only. Pinned to
-                      the far right on desktop (ml-auto); wraps down with
-                      favorite/share on mobile, right after Watch Now's
-                      own full-width line. */}
-                  <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#01B4E4] px-3.5 text-sm font-bold text-white sm:ml-auto">
-                    <FaStar className="h-3.5 w-3.5" />
-                    {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
+                    {/* Rating badge — blue bg, star + number only. Pinned to
+                        the far right on desktop (ml-auto); part of the
+                        evenly-spaced mobile row otherwise. */}
+                    <div className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#01B4E4] px-3.5 text-sm font-bold text-white sm:ml-auto sm:h-12 sm:gap-2 sm:px-4 sm:text-base">
+                      <FaStar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
+                    </div>
                   </div>
                 </div>
 
@@ -835,12 +889,14 @@ export default function MovieDetailPage() {
                           })()}
                       </div>
                     ) : (
-                      /* ---- Phim lẻ: các bản chiếu dạng thẻ ảnh, không viền ---- */
+                      /* ---- Phim lẻ: các bản chiếu — thẻ màu, không có
+                          chữ nhỏ bên dưới, poster tràn bên phải ---- */
                       <div>
                         <h3 className="mb-4 text-base font-bold text-white">Các bản chiếu</h3>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {episodes.map((ep) => {
                             const Icon = episodeServerIcon(ep.server_name);
+                            const color = episodeServerCardColor(ep.server_name);
                             const firstEp = ep.server_data.find(
                               (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
                             );
@@ -851,30 +907,46 @@ export default function MovieDetailPage() {
                                 type="button"
                                 onClick={() => handleEpisodeSelect(firstEp.slug, ep.server_name)}
                                 title={ep.server_name}
-                                className="group/ver overflow-hidden rounded-xl bg-[#1f2128] text-left transition-colors hover:bg-[#2a2d36]"
+                                className="group/ver relative flex h-42 items-center overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015]"
+                                style={{ backgroundColor: color.solid }}
                               >
-                                <div className="relative aspect-video w-full overflow-hidden">
-                                  <img
-                                    src={backdropUrl}
-                                    alt={ep.server_name}
-                                    loading="lazy"
-                                    className="h-full w-full object-cover transition duration-300 group-hover/ver:scale-105"
-                                    onError={onImgError}
-                                  />
-                                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover/ver:opacity-100">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FECF59] text-[#0f1115]">
-                                      <FaPlay className="h-3 w-3" />
+                                {/* Poster fills most of the card; the same
+                                    card color is layered on top as a
+                                    left-to-right gradient (solid → fully
+                                    transparent) so it visually melts into
+                                    the photo instead of a hard color/image
+                                    seam. */}
+                                <img
+                                  src={posterUrl}
+                                  alt=""
+                                  aria-hidden
+                                  loading="lazy"
+                                  className="pointer-events-none absolute inset-y-0 right-0 w-2/3 object-cover transition-transform duration-300 group-hover/ver:scale-105"
+                                  onError={onImgError}
+                                />
+                                <div
+                                  className="pointer-events-none absolute inset-y-0 left-0 w-full"
+                                  style={{
+                                    background: `linear-gradient(to right, ${color.solid} 0%, ${color.solid} 38%, ${color.soft}cc 55%, transparent 88%)`,
+                                  }}
+                                />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+
+                                <div className="relative z-10 flex h-full flex-col justify-center gap-2.5 py-4 pl-5 pr-6">
+                                  <div className="flex items-center gap-2">
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#8a7ff5] text-white">
+                                      <Icon className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="truncate text-sm font-semibold text-white/90">
+                                      {ep.server_name}
                                     </span>
                                   </div>
-                                </div>
-                                <div className="p-2.5">
-                                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400">
-                                    <Icon className="h-3 w-3 shrink-0" />
-                                    <span className="truncate">{ep.server_name}</span>
-                                  </div>
-                                  <p className="mt-1 line-clamp-1 text-xs font-bold text-white">
+                                  <p className="line-clamp-2 max-w-[65%] text-base font-bold leading-snug text-white">
                                     {movie.name}
                                   </p>
+                                  <span className="inline-flex w-fit items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition-colors group-hover/ver:bg-[#FECF59]">
+                                    Xem bản này
+                                  </span>
                                 </div>
                               </button>
                             );
@@ -963,11 +1035,12 @@ export default function MovieDetailPage() {
                           </div>
                         )}
 
-                        {/* ---- Ảnh — mỗi ảnh full-width, 1 ảnh / dòng ---- */}
+                        {/* ---- Ảnh — 2 ảnh / dòng (trước đây 1 ảnh/dòng,
+                            khiến tab dài lê thê) ---- */}
                         {imageItems.length > 0 && (
                           <div>
                             <h3 className="mb-3 text-base font-bold text-white">Ảnh</h3>
-                            <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
                               {imageItems.map((src) => (
                                 <img
                                   key={src}
@@ -985,9 +1058,58 @@ export default function MovieDetailPage() {
                     );
                   })()}
 
-                  {/* ---- Diễn viên ---- */}
+                  {/* ---- Diễn viên (+ Đạo diễn) ---- */}
                   {activeTab === 'cast' && (
                     <div>
+                      {/* Đạo diễn — real TMDB headshots when available,
+                          falling back to the plain-text director names the
+                          phim API itself provides. */}
+                      {(tmdbDirectors.length > 0 || (movie.director && movie.director.length > 0)) && (
+                        <div className="mb-6">
+                          <h3 className="mb-4 text-base font-bold text-white">Đạo diễn</h3>
+                          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
+                            {tmdbDirectors.length > 0
+                              ? tmdbDirectors.map((person) => {
+                                  const photoUrl = getTmdbImageUrl(person.profile_path);
+                                  return (
+                                    <div
+                                      key={person.id}
+                                      className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center transition-colors hover:bg-white/[0.07]"
+                                    >
+                                      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white/10 text-lg font-bold text-white/40 ring-1 ring-white/10 sm:h-20 sm:w-20">
+                                        {photoUrl ? (
+                                          <img
+                                            src={photoUrl}
+                                            alt={person.name}
+                                            className="h-full w-full object-cover"
+                                            loading="lazy"
+                                            onError={onImgError}
+                                          />
+                                        ) : (
+                                          <FaUserCircle className="h-full w-full text-white/25" />
+                                        )}
+                                      </div>
+                                      <p className="text-xs font-medium text-white/85 sm:text-sm">
+                                        {person.name}
+                                      </p>
+                                    </div>
+                                  );
+                                })
+                              : movie.director!.map((name) => (
+                                  <div
+                                    key={name}
+                                    className="flex flex-col items-center gap-2 rounded-xl bg-white/[0.03] p-3 text-center transition-colors hover:bg-white/[0.07]"
+                                  >
+                                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white/10 text-lg font-bold text-white/40 ring-1 ring-white/10 sm:h-20 sm:w-20">
+                                      <FaUserCircle className="h-full w-full text-white/25" />
+                                    </div>
+                                    <span className="text-xs text-white/75 sm:text-sm">{name}</span>
+                                  </div>
+                                ))}
+                          </div>
+                        </div>
+                      )}
+
                       <h3 className="mb-4 text-base font-bold text-white">Diễn viên</h3>
                       {tmdbCast.length > 0 ? (
                         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
