@@ -178,6 +178,156 @@
   #kgp-unmute .kgp-unmute-btn svg {
     flex-shrink: 0;
   }
+
+  /* ── "Phụ đề" (CC) popup — cloned from the reference screenshots ───
+     A white rounded card: Bật / Song ngữ / Tắt segmented control up top,
+     two side-by-side language lists below, and a gear icon that swaps
+     the whole panel for the "Tuỳ chỉnh" text-style editor. Positioned
+     like a real subtitle-settings popover, anchored above the CC button. */
+  .kgp-cc-popup {
+    display: none;
+    position: absolute;
+    right: 16px;
+    bottom: 64px;
+    width: 300px;
+    max-width: calc(100vw - 24px);
+    background: #fff;
+    color: #17171a;
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+    z-index: 40;
+  }
+  .kgp-cc-popup.show { display: block; }
+  .kgp-cc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 4px;
+  }
+  .kgp-cc-head strong { font-size: 14px; font-weight: 700; }
+  .kgp-cc-iconbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #444;
+    cursor: pointer;
+  }
+  .kgp-cc-iconbtn:hover { background: #f0f0f0; }
+  .kgp-cc-segment {
+    display: flex;
+    gap: 4px;
+    margin: 8px 14px 12px;
+    background: #f1f1f3;
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .kgp-cc-segment button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    padding: 6px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+  }
+  .kgp-cc-segment button.active { background: #17171a; color: #fff; }
+  .kgp-cc-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8px;
+    padding: 0 14px 12px;
+  }
+  .kgp-cc-cols.single { grid-template-columns: 1fr; }
+  .kgp-cc-col-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #17171a;
+    padding: 6px 6px;
+    border-bottom: 1px solid #ececec;
+    margin-bottom: 2px;
+  }
+  .kgp-cc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+  }
+  .kgp-cc-row:hover { background: #f5f5f5; }
+  .kgp-cc-row.selected { background: #eef6ff; font-weight: 700; color: #0f6fde; }
+  .kgp-cc-row .kgp-check { opacity: 0; font-size: 11px; }
+  .kgp-cc-row.selected .kgp-check { opacity: 1; }
+  .kgp-cc-note {
+    padding: 0 14px 14px;
+    font-size: 11.5px;
+    color: #8a8a8a;
+    line-height: 1.5;
+  }
+
+  /* ── "Tuỳ chỉnh" (subtitle style editor) sub-panel ── */
+  .kgp-cc-custom { display: none; padding: 6px 0 10px; }
+  .kgp-cc-custom.show { display: block; }
+  .kgp-cc-custom-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 4px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .kgp-cc-custom-head button {
+    border: none;
+    background: transparent;
+    color: #444;
+    cursor: pointer;
+    display: inline-flex;
+  }
+  .kgp-cc-group-label {
+    padding: 10px 14px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9a9a9a;
+    text-transform: none;
+  }
+  .kgp-cc-opt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: #333;
+  }
+  .kgp-cc-opt-val {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #666;
+    font-size: 12.5px;
+  }
+  .kgp-cc-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #ccc;
+    display: inline-block;
+  }
+  .kgp-cc-scroll {
+    max-height: 340px;
+    overflow-y: auto;
+  }
 </style>
 </head>
 <body>
@@ -311,6 +461,53 @@
           pointerEvents: 'none',
         },
       },
+      {
+        // "Phụ đề" (CC) popup — see .kgp-cc-popup CSS above. Two views
+        // inside the same layer: the main Bật/Song ngữ/Tắt + language
+        // list (.kgp-cc-main) and the "Tuỳ chỉnh" style editor
+        // (.kgp-cc-custom), toggled via kgpCcShowCustom()/kgpCcShowMain().
+        name: 'kgp-cc-popup',
+        html:
+          '<div class="kgp-cc-popup" id="kgp-cc-popup">' +
+            '<div class="kgp-cc-main" id="kgp-cc-main">' +
+              '<div class="kgp-cc-head">' +
+                '<strong>Phụ đề</strong>' +
+                '<button type="button" class="kgp-cc-iconbtn" title="Tuỳ chỉnh" onclick="window.__kgpCcShowCustom(event)">' +
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94a7.14 7.14 0 0 0 .06-.94 7.14 7.14 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94L14.4 2.8a.49.49 0 0 0-.49-.42h-3.84a.49.49 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.68 8.86a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.05.24.25.42.49.42h3.84c.24 0 .44-.18.49-.42l.36-2.54c.58-.23 1.13-.54 1.63-.94l2.39.96c.24.1.5 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>' +
+                '</button>' +
+              '</div>' +
+              '<div class="kgp-cc-segment" id="kgp-cc-segment">' +
+                '<button type="button" data-mode="on" onclick="window.__kgpCcSetMode(event,\'on\')">Bật</button>' +
+                '<button type="button" data-mode="dual" class="active" onclick="window.__kgpCcSetMode(event,\'dual\')">Song ngữ</button>' +
+                '<button type="button" data-mode="off" onclick="window.__kgpCcSetMode(event,\'off\')">Tắt</button>' +
+              '</div>' +
+              '<div class="kgp-cc-cols" id="kgp-cc-cols"></div>' +
+              '<p class="kgp-cc-note">Phụ đề do nguồn phát cung cấp — ngôn ngữ hiển thị tuỳ theo bản phát hành của từng phim.</p>' +
+            '</div>' +
+            '<div class="kgp-cc-custom kgp-cc-scroll" id="kgp-cc-custom">' +
+              '<div class="kgp-cc-custom-head">' +
+                '<button type="button" onclick="window.__kgpCcShowMain(event)" aria-label="Quay lại">' +
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>' +
+                '</button>' +
+                '<span>Tuỳ chỉnh</span>' +
+              '</div>' +
+              '<div class="kgp-cc-group-label">Phụ đề chính</div>' +
+              '<div class="kgp-cc-opt"><span>Màu chữ</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot"></i> Trắng ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Cỡ chữ</span><span class="kgp-cc-opt-val">14pt ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Độ trong</span><span class="kgp-cc-opt-val">100% ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Font chữ</span><span class="kgp-cc-opt-val">Arial ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Viền chữ</span><span class="kgp-cc-opt-val">Không viền ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Màu nền</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot" style="background:#000"></i> Đen ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Độ trong nền</span><span class="kgp-cc-opt-val">0% ›</span></div>' +
+              '<div class="kgp-cc-group-label">Song ngữ</div>' +
+              '<div class="kgp-cc-opt"><span>Màu chữ</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot"></i> Trắng ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Cỡ chữ</span><span class="kgp-cc-opt-val">70% ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Độ trong</span><span class="kgp-cc-opt-val">100% ›</span></div>' +
+              '<div class="kgp-cc-opt"><span>Font chữ</span><span class="kgp-cc-opt-val">Arial ›</span></div>' +
+            '</div>' +
+          '</div>',
+        style: { pointerEvents: 'auto' },
+      },
     ],
     controls: [
       {
@@ -336,6 +533,30 @@
         html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>',
         tooltip: 'Tập tiếp theo',
         click: function () { postToParent({ action: 'nextEpisode' }); },
+      },
+      {
+        // Decorative — mirrors the reference player's mic icon in the
+        // bottom bar. Not wired to a real feature (voice search / audio
+        // description isn't something this app has), so it just shows a
+        // small "sắp ra mắt" hint rather than silently doing nothing.
+        position: 'right',
+        name: 'kgp-mic',
+        index: 15,
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>',
+        tooltip: 'Sắp ra mắt',
+        click: function () {},
+      },
+      {
+        // "Phụ đề" (CC) — toggles the .kgp-cc-popup layer built above.
+        position: 'right',
+        name: 'kgp-cc',
+        index: 16,
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-9.5 10.5H9v-1H7.5v1H6v-5h1.5v1H9v-1h1.5v5Zm7 0h-1.5v-1H14.5v1H13v-5h1.5v1H16v-1h1.5v5Z"/></svg>',
+        tooltip: 'Phụ đề',
+        click: function (_component, event) {
+          if (event) event.stopPropagation();
+          window.__kgpCcToggle();
+        },
       },
     ],
     customType: isHls
@@ -647,6 +868,116 @@
   });
 
   window.art = art;
+
+  // ===================================================================
+  // "Phụ đề" (CC) popup logic
+  //
+  // IMPORTANT — honest limitation: this app's movie sources don't
+  // provide separate subtitle-track files (no subtitle URL field on the
+  // episode data), so there's nothing real to switch between yet. This
+  // wires up the full reference UI (Bật/Song ngữ/Tắt, language columns,
+  // style customization) so it's ready the moment a source with real
+  // subtitle tracks is added — for now the "Tắt" state is accurate,
+  // since there's no subtitle content to actually show.
+  // ===================================================================
+  var KGP_CC_LANGS = [
+    { id: 'vi', label: 'Tiếng Việt' },
+    { id: 'vi-sub', label: 'Phụ đề' },
+    { id: 'en', label: 'English' },
+    { id: 'ko', label: '한국어' },
+    { id: 'zh', label: '中文' },
+  ];
+  var kgpCcMode = 'off'; // 'on' | 'dual' | 'off' — matches actual availability
+  var kgpCcPrimary = null;
+  var kgpCcSecondary = null;
+
+  function kgpCcRenderCols() {
+    var cols = document.getElementById('kgp-cc-cols');
+    if (!cols) return;
+    if (kgpCcMode === 'off') {
+      cols.className = 'kgp-cc-cols';
+      cols.innerHTML = '';
+      return;
+    }
+    var dual = kgpCcMode === 'dual';
+    cols.className = dual ? 'kgp-cc-cols' : 'kgp-cc-cols single';
+
+    function buildCol(title, selectedId, onPick) {
+      var html = '<div>';
+      html += '<div class="kgp-cc-col-title">' + title + '</div>';
+      KGP_CC_LANGS.forEach(function (l) {
+        var sel = l.id === selectedId;
+        html +=
+          '<div class="kgp-cc-row' + (sel ? ' selected' : '') + '" data-lang="' + l.id + '" data-target="' + (title === 'Tiếng Việt' ? 'p' : 's') + '">' +
+            '<span>' + l.label + '</span><span class="kgp-check">✓</span>' +
+          '</div>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    cols.innerHTML =
+      buildCol('Tiếng Việt', kgpCcPrimary) + (dual ? buildCol('Tiếng Việt', kgpCcSecondary) : '');
+
+    Array.prototype.forEach.call(cols.querySelectorAll('.kgp-cc-row'), function (row) {
+      row.addEventListener('click', function () {
+        var lang = row.getAttribute('data-lang');
+        var target = row.getAttribute('data-target');
+        if (target === 's') {
+          kgpCcSecondary = lang;
+        } else {
+          kgpCcPrimary = lang;
+        }
+        kgpCcRenderCols();
+      });
+    });
+  }
+
+  window.__kgpCcSetMode = function (e, mode) {
+    if (e) e.stopPropagation();
+    kgpCcMode = mode;
+    var seg = document.getElementById('kgp-cc-segment');
+    if (seg) {
+      Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+        b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+      });
+    }
+    if (mode !== 'off' && !kgpCcPrimary) kgpCcPrimary = 'vi';
+    if (mode === 'dual' && !kgpCcSecondary) kgpCcSecondary = 'en';
+    kgpCcRenderCols();
+  };
+
+  window.__kgpCcShowCustom = function (e) {
+    if (e) e.stopPropagation();
+    var main = document.getElementById('kgp-cc-main');
+    var custom = document.getElementById('kgp-cc-custom');
+    if (main) main.style.display = 'none';
+    if (custom) custom.classList.add('show');
+  };
+  window.__kgpCcShowMain = function (e) {
+    if (e) e.stopPropagation();
+    var main = document.getElementById('kgp-cc-main');
+    var custom = document.getElementById('kgp-cc-custom');
+    if (custom) custom.classList.remove('show');
+    if (main) main.style.display = '';
+  };
+
+  window.__kgpCcToggle = function () {
+    var popup = document.getElementById('kgp-cc-popup');
+    if (!popup) return;
+    var willShow = !popup.classList.contains('show');
+    popup.classList.toggle('show', willShow);
+    if (willShow) {
+      kgpCcRenderCols();
+    }
+  };
+
+  // Click outside (anywhere else on the player) closes the popup.
+  document.addEventListener('click', function (e) {
+    var popup = document.getElementById('kgp-cc-popup');
+    if (!popup || !popup.classList.contains('show')) return;
+    if (!popup.contains(e.target)) popup.classList.remove('show');
+  });
 
   // ===================================================================
   // AUTOPLAY FALLBACK

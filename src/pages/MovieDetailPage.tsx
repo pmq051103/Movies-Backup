@@ -11,7 +11,6 @@ import {
   FaClock,
   FaShareAlt,
   FaUserCircle,
-  FaListUl,
   FaClosedCaptioning,
   FaMicrophone,
   FaLanguage,
@@ -20,7 +19,7 @@ import {
   FaChevronDown,
   FaCheckCircle,
 } from 'react-icons/fa';
-import { MovieRow } from '@/components/movie';
+import { MovieRow, EpisodeListPanel } from '@/components/movie';
 import { DetailSkeleton } from '@/components/common';
 import { useFavoriteStore, useHistoryStore } from '@/store';
 import { useMovieDetail, useMoviesByGenre, useTmdbExtras } from '@/hooks';
@@ -110,15 +109,6 @@ export default function MovieDetailPage() {
     { key: 'gallery', label: 'Gallery' },
     { key: 'cast', label: 'Diễn viên' },
   ];
-
-  // "Rút gọn" / "Mở rộng" — collapsed shows a compact "Tập N" grid;
-  // expanded shows landscape thumbnail cards (with cover image + play btn).
-  const [episodesCollapsed, setEpisodesCollapsed] = useState(true);
-  const [activeEpisodeServer, setActiveEpisodeServer] = useState(0);
-  // Long series are paginated in chunks so the grid never gets huge.
-  const EPISODES_PER_PAGE = 80;
-  const [episodePage, setEpisodePage] = useState(0);
-  const currentEpisodeServer = episodes[activeEpisodeServer];
 
   const episodeServerIcon = (serverName: string) => {
     const n = serverName.toLowerCase();
@@ -739,155 +729,11 @@ export default function MovieDetailPage() {
                       </p>
                     ) : hasEpisodeList ? (
                       /* ---- Phim bộ: danh sách tập ---- */
-                      <div>
-                        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-                          <div className="flex items-center gap-2 text-sm font-bold text-white">
-                            <FaListUl className="text-[#FECF59]" />
-                            Danh sách tập
-                          </div>
-
-                          {episodes.length > 1 && (
-                            <div className="flex flex-wrap items-center gap-1">
-                              {episodes.map((ep, idx) => {
-                                const Icon = episodeServerIcon(ep.server_name);
-                                const active = idx === activeEpisodeServer;
-                                return (
-                                  <button
-                                    key={ep.server_name}
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveEpisodeServer(idx);
-                                      setEpisodePage(0);
-                                    }}
-                                    title={ep.server_name}
-                                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                                      active
-                                        ? 'border-[#FECF59]/50 bg-[#FECF59]/10 text-[#FECF59]'
-                                        : 'border-transparent text-gray-400 hover:text-gray-200'
-                                    }`}
-                                  >
-                                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="max-w-[9rem] truncate">{ep.server_name}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setEpisodesCollapsed((v) => !v)}
-                            className="ml-auto flex shrink-0 items-center gap-2 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200"
-                          >
-                            {episodesCollapsed ? 'Mở rộng' : 'Rút gọn'}
-                            <span
-                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                                episodesCollapsed ? 'bg-white/10' : 'bg-[#FECF59]'
-                              }`}
-                            >
-                              <span
-                                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                                  episodesCollapsed ? 'translate-x-1' : 'translate-x-[18px]'
-                                }`}
-                              />
-                            </span>
-                          </button>
-                        </div>
-
-                        {currentEpisodeServer &&
-                          (() => {
-                            const all = currentEpisodeServer.server_data;
-                            const pageCount = Math.ceil(all.length / EPISODES_PER_PAGE);
-                            const page = Math.min(episodePage, Math.max(pageCount - 1, 0));
-                            const start = page * EPISODES_PER_PAGE;
-                            const pageItems = all.slice(start, start + EPISODES_PER_PAGE);
-
-                            return (
-                              <>
-                                {/* Range selector for long series (1-80, 81-160, …) — fixed width */}
-                                {pageCount > 1 && (
-                                  <div className="mb-4 flex flex-wrap gap-1.5">
-                                    {Array.from({ length: pageCount }).map((_, p) => {
-                                      const from = p * EPISODES_PER_PAGE + 1;
-                                      const to = Math.min((p + 1) * EPISODES_PER_PAGE, all.length);
-                                      const activeRange = p === page;
-                                      return (
-                                        <button
-                                          key={p}
-                                          type="button"
-                                          onClick={() => setEpisodePage(p)}
-                                          className={`w-[84px] shrink-0 rounded-md py-1.5 text-center text-xs font-semibold transition-colors ${
-                                            activeRange
-                                              ? 'bg-[#FECF59] text-[#0f1115]'
-                                              : 'bg-[#1f2128] text-gray-300 hover:bg-[#2a2d36] hover:text-white'
-                                          }`}
-                                        >
-                                          {from}-{to}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-
-                                {episodesCollapsed ? (
-                                  /* Rút gọn — lưới nút "Tập N" gọn */
-                                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
-                                    {pageItems.map((sd, idx) => (
-                                      <button
-                                        key={sd.slug}
-                                        type="button"
-                                        onClick={() =>
-                                          handleEpisodeSelect(
-                                            sd.slug,
-                                            currentEpisodeServer.server_name,
-                                          )
-                                        }
-                                        title={sd.name}
-                                        className="flex items-center justify-center gap-1.5 rounded-lg bg-[#1f2128] px-2 py-2.5 text-xs font-semibold text-gray-200 transition-colors hover:bg-[#FECF59] hover:text-[#0f1115]"
-                                      >
-                                        <FaPlay className="h-2.5 w-2.5 shrink-0 opacity-60" />
-                                        <span className="truncate">Tập {start + idx + 1}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  /* Mở rộng — thẻ ngang có ảnh bìa + nút play */
-                                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                                    {pageItems.map((sd, idx) => (
-                                      <button
-                                        key={sd.slug}
-                                        type="button"
-                                        onClick={() =>
-                                          handleEpisodeSelect(
-                                            sd.slug,
-                                            currentEpisodeServer.server_name,
-                                          )
-                                        }
-                                        title={sd.name}
-                                        className="group/ep relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-[#1f2128] text-left"
-                                      >
-                                        <img
-                                          src={backdropUrl}
-                                          alt={`Tập ${start + idx + 1}`}
-                                          loading="lazy"
-                                          className="absolute inset-0 h-full w-full object-cover opacity-45 transition duration-300 group-hover/ep:scale-105 group-hover/ep:opacity-60"
-                                          onError={onImgError}
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                                        <span className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition group-hover/ep:bg-[#FECF59] group-hover/ep:text-[#0f1115]">
-                                          <FaPlay className="h-3 w-3" />
-                                        </span>
-                                        <span className="absolute bottom-2 left-3 z-10 text-xs font-bold text-white">
-                                          Tập {start + idx + 1}
-                                        </span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
-                      </div>
+                      <EpisodeListPanel
+                        episodes={episodes}
+                        backdropUrl={backdropUrl}
+                        onSelect={handleEpisodeSelect}
+                      />
                     ) : (
                       /* ---- Phim lẻ: các bản chiếu — thẻ màu, không có
                           chữ nhỏ bên dưới, poster tràn bên phải ---- */

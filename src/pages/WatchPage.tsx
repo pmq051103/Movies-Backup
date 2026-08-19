@@ -4,8 +4,6 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaServer,
-  FaLanguage,
   FaFilm,
   FaToggleOn,
   FaToggleOff,
@@ -22,7 +20,7 @@ import {
   FaClock,
 } from 'react-icons/fa';
 
-import { EpisodeList, MovieRow } from '@/components/movie';
+import { EpisodeListPanel, MovieRow } from '@/components/movie';
 import { ShareButtons } from '@/components/common';
 import { ROUTES, MOVIE_STATUS } from '@/constants';
 import {
@@ -74,22 +72,6 @@ function resolveIndices(
   }
 
   return { serverIndex, episodeIndex };
-}
-
-/**
- * phimapi (and most Vietnamese sources) don't multiplex Vietsub + Thuyết
- * Minh into one file — they publish them as separate "servers", each named
- * after the audio/subtitle track it carries (e.g. "Vietsub #1", "Thuyết
- * Minh #1"). When that's the case, the server tabs ARE the language
- * switcher — this just detects it so the UI can say so instead of the
- * generic "Server" label, which makes the switch easy to miss.
- */
-function detectServerLanguage(serverName: string): string | null {
-  const raw = serverName.toLowerCase();
-  if (/thuyết|thuyet/.test(raw)) return 'Thuyết Minh';
-  if (/lồng|long tieng/.test(raw)) return 'Lồng Tiếng';
-  if (/vietsub|phụ đề|phu de/.test(raw)) return 'Vietsub';
-  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -729,7 +711,9 @@ export default function WatchPage() {
         animate="visible"
         className="min-h-screen bg-gray-950 text-white"
       >
-        <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
+        {/* Narrower content column (was full-width edge-to-edge) so text
+            and controls don't stretch too wide on large monitors. */}
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
           {/* Player — full width, controls + two-column info sit below it. */}
           <div>
               {/* Player — when cinema mode is on, elevate to fixed
@@ -953,7 +937,7 @@ export default function WatchPage() {
             <div className="flex flex-1 gap-4 min-w-0">
               <Link
                 to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                className="relative w-20 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-28"
+                className="relative w-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-32 lg:w-36"
               >
                 <img
                   src={getMoviePoster(movie.poster_url, movie.thumb_url)}
@@ -968,13 +952,16 @@ export default function WatchPage() {
                 )}
               </Link>
 
-              <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:gap-6">
-                {/* Title / badges / genres / status — fixed-width column */}
-                <div className="min-w-0 space-y-2.5 sm:w-60 sm:shrink-0">
+              <div className="flex min-w-0 flex-1 flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-6">
+                {/* Title / badges / genres / status — same width as the
+                    description column beside it (was a fixed narrow
+                    column with the description stretching to fill all
+                    remaining space — now an even 50/50 split). */}
+                <div className="min-w-0 space-y-2.5">
                   <div>
                     <Link
                       to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                      className="text-lg font-bold text-white transition-colors hover:text-[#FECF59] sm:text-xl"
+                      className="text-xl font-bold text-white transition-colors hover:text-[#FECF59] sm:text-2xl"
                     >
                       {movie.name}
                     </Link>
@@ -1058,10 +1045,11 @@ export default function WatchPage() {
                   )}
                 </div>
 
-                {/* Description — sits to the right of the title/badges
-                    column, not stacked below it. */}
+                {/* Description — same column width as the title block
+                    now (grid-cols-2 above), not an unbounded flex-1 that
+                    stretched huge on wide screens. */}
                 {movie.content && (
-                  <div className="min-w-0 flex-1 space-y-2">
+                  <div className="min-w-0 space-y-2">
                     <p className="line-clamp-4 text-sm leading-relaxed text-gray-400 sm:line-clamp-5">
                       {movie.content.replace(/<[^>]*>/g, '')}
                     </p>
@@ -1130,9 +1118,10 @@ export default function WatchPage() {
             </div>
           </div>
 
-          {/* ---- Episode section — full width, server/language tabs +
-               collapsible episode grid (single "Danh sách tập" block,
-               replacing the old split mobile/desktop sidebar). ---- */}
+          {/* ---- Episode section — identical "Danh sách tập" design used
+               on the movie detail page (icon server tabs, 80-per-page
+               range chunks, Rút gọn/Mở rộng thumbnail toggle) instead of
+               a separately-styled block, so the two pages match. ---- */}
           {episodes.length > 0 && (() => {
             const hasMultipleEpisodes = episodes.some(
               (ep) => (ep.server_data?.length ?? 0) > 1,
@@ -1140,49 +1129,17 @@ export default function WatchPage() {
 
             return (
               <div className="mt-8">
-                {episodes.length > 1 && (
-                  <div className="mb-4">
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">
-                      {episodes.some((ep) => detectServerLanguage(ep.server_name))
-                        ? t('watch.language', 'Ngôn ngữ')
-                        : t('watch.server')}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {episodes.map((ep, idx) => {
-                        const lang = detectServerLanguage(ep.server_name);
-                        return (
-                          <button
-                            key={ep.server_name}
-                            onClick={() => navigateToEpisode(idx, 0)}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                              idx === serverIndex
-                                ? 'bg-[#FECF59] text-[#0f1115] shadow-md shadow-[#FECF59]/30'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-                            }`}
-                          >
-                            {lang ? (
-                              <FaLanguage className="h-3.5 w-3.5" />
-                            ) : (
-                              <FaServer className="h-3 w-3" />
-                            )}
-                            {lang ?? ep.server_name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 {hasMultipleEpisodes ? (
-                  <EpisodeList
+                  <EpisodeListPanel
                     episodes={episodes}
+                    backdropUrl={getMoviePoster(movie.thumb_url, movie.poster_url)}
                     currentEpisodeSlug={currentEpisodeData?.slug}
                     currentServerName={currentServer?.server_name}
-                    movieSlug={movie.slug}
-                    preferSource={preferSource ?? undefined}
-                    showHeader={false}
-                    showServerTabs={false}
-                    collapsible
+                    onSelect={(episodeSlug, serverName) =>
+                      navigate(
+                        `${ROUTES.WATCH}/${movie.slug}?tap=${episodeSlug}&sv=${encodeURIComponent(serverName)}${preferSource ? `&src=${preferSource}` : ''}`,
+                      )
+                    }
                   />
                 ) : (
                   <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-sm text-gray-400">
