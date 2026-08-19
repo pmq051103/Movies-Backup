@@ -92,6 +92,7 @@
     "episodes": "Danh Sách Tập",
     "episodeCount": "Số Tập",
     "episodeUnit": "Tập",
+    "collapseList": "Rút gọn",
     "season": "Phần",
     "recommendations": "Phim Liên Quan",
     "similar": "Phim Tương Tự",
@@ -102,6 +103,7 @@
     "studios": "Nhà Sản Xuất",
     "originalTitle": "Tên Gốc",
     "singleMovieNote": "Phim lẻ — không có danh sách tập, bạn đang xem toàn bộ phim.",
+    "addToList": "Thêm vào",
     "type": {
       "single": "Phim Lẻ",
       "series": "Phim Bộ",
@@ -121,7 +123,12 @@
     "resumePrompt": "Bạn muốn tiếp tục xem từ vị trí trước đó?",
     "watchNow": "Xem Phim",
     "youMightLike": "Bạn cũng có thể thích",
-    "exitCinema": "Thoát rạp"
+    "exitCinema": "Thoát rạp",
+    "skipIntro": "Bỏ qua giới thiệu",
+    "watchParty": "Xem chung",
+    "reportError": "Báo lỗi",
+    "movieInfo": "Thông tin phim",
+    "comingSoon": "Tính năng sắp ra mắt"
   },
   "player": {
     "selectServer": "Chọn Máy Chủ",

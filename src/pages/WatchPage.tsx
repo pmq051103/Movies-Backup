@@ -4,21 +4,37 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaStepBackward,
-  FaStepForward,
   FaServer,
   FaLanguage,
   FaFilm,
   FaToggleOn,
   FaToggleOff,
   FaPlay,
+  FaHeart,
+  FaRegHeart,
+  FaPlus,
+  FaForward,
+  FaShareAlt,
+  FaUsers,
+  FaFlag,
+  FaEye,
+  FaChevronRight,
+  FaUserCircle,
 } from 'react-icons/fa';
 
 import { EpisodeList, MovieRow } from '@/components/movie';
+import { ShareButtons } from '@/components/common';
 import { ROUTES } from '@/constants';
-import { useMovieDetail, useMoviesInGenre, useMoviesBySlug, useSearchMovies } from '@/hooks';
-import { usePlayerStore, useHistoryStore } from '@/store';
-import { getMoviePoster } from '@/utils';
+import {
+  useMovieDetail,
+  useMoviesInGenre,
+  useMoviesBySlug,
+  useSearchMovies,
+  useTmdbExtras,
+} from '@/hooks';
+import { getTmdbImageUrl } from '@/api/tmdbService';
+import { usePlayerStore, useHistoryStore, useFavoriteStore } from '@/store';
+import { getMoviePoster, onImgError } from '@/utils';
 import { normalizeVi } from '@/utils/searchRank';
 import type { Episode, MovieListItem } from '@/types';
 
@@ -189,6 +205,30 @@ function RelatedMovies({
   );
 }
 
+/**
+ * Small floating "coming soon" bubble shown briefly under a control button
+ * that doesn't have real backing functionality yet (watch-list, skip-intro,
+ * watch-party, error reports) — so the button gives honest feedback instead
+ * of silently doing nothing.
+ */
+function ComingSoonBubble({ align = 'center' }: { align?: 'center' | 'right' }) {
+  const { t } = useTranslation();
+  const posCls =
+    align === 'right'
+      ? 'right-0'
+      : 'left-1/2 -translate-x-1/2';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      className={`absolute top-full z-30 mt-2 whitespace-nowrap rounded-lg bg-[#18181b] px-3 py-1.5 text-xs font-medium text-gray-200 shadow-lg ring-1 ring-white/10 ${posCls}`}
+    >
+      {t('watch.comingSoon', 'Tính năng sắp ra mắt')}
+    </motion.div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* WatchPage                                                           */
 /* ------------------------------------------------------------------ */
@@ -221,6 +261,12 @@ export default function WatchPage() {
   const movie = data?.movie ?? null;
   const episodes = data?.episodes ?? [];
 
+  // Real actor headshots (falls back to initials avatars when there's no
+  // TMDB api key / tmdb id) — same source the movie detail page's
+  // "Diễn viên" tab uses, so the cast grid looks consistent across pages.
+  const { data: tmdbExtras } = useTmdbExtras(movie?.tmdb?.id, movie?.tmdb?.type);
+  const tmdbCast = tmdbExtras?.cast ?? [];
+
   /* ---- Store ---- */
   const {
     cinemaMode,
@@ -232,6 +278,47 @@ export default function WatchPage() {
   } = usePlayerStore();
 
   const { addToHistory, getProgress } = useHistoryStore();
+  const { isFavorite, addFavorite, removeFavorite } = useFavoriteStore();
+  const isFav = movie ? isFavorite(movie.slug) : false;
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!movie) return;
+    if (isFav) {
+      removeFavorite(movie.slug);
+      return;
+    }
+    const item: MovieListItem = {
+      _id: movie._id,
+      name: movie.name,
+      origin_name: movie.origin_name,
+      slug: movie.slug,
+      poster_url: movie.poster_url,
+      thumb_url: movie.thumb_url,
+      year: movie.year,
+      tmdb: movie.tmdb,
+      imdb: movie.imdb,
+      modified: movie.modified,
+      episode_current: movie.episode_current ?? '',
+      episode_total: movie.episode_total ?? '',
+      quality: movie.quality ?? '',
+      lang: movie.lang ?? '',
+      type: movie.type ?? '',
+      chieurap: movie.chieurap ?? false,
+    };
+    addFavorite(item);
+  }, [movie, isFav, addFavorite, removeFavorite]);
+
+  // Small self-contained "coming soon" bubble for controls that don't have
+  // real backing functionality yet (watch-list, skip-intro, watch-party,
+  // error reports) — shows a brief tooltip instead of silently doing
+  // nothing, so the button doesn't feel broken.
+  const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const showComingSoon = useCallback((label: string) => {
+    setComingSoon(label);
+    window.setTimeout(() => setComingSoon((cur) => (cur === label ? null : cur)), 1800);
+  }, []);
+
+  const [shareOpen, setShareOpen] = useState(false);
 
   /* ---- Resolve indices ---- */
   const { serverIndex, episodeIndex } = useMemo(
@@ -603,10 +690,8 @@ export default function WatchPage() {
         className="min-h-screen bg-gray-950 text-white"
       >
         <div className="mx-auto w-full px-4 py-4 sm:px-6 lg:px-8">
-          {/* Main layout: player + sidebar */}
-          <div className="flex flex-col gap-6 lg:flex-row">
-            {/* Left column: player + controls */}
-            <div className="flex-1">
+          {/* Player — full width, controls + two-column info sit below it. */}
+          <div>
               {/* Player — when cinema mode is on, elevate to fixed
                   full-viewport (rạp thật sự phóng to). When off, sits
                   inline in the normal 16:9 responsive slot. */}
@@ -713,262 +798,338 @@ export default function WatchPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+          </div>
 
-              {/* Movie info */}
-              <div className="mt-4 space-y-1">
-                <Link
-                  to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                  className="text-xl font-bold text-white transition-colors hover:text-red-400"
-                >
-                  {movie.name}
-                </Link>
-                {movie.origin_name && movie.origin_name !== movie.name && (
-                  <p className="text-sm italic text-gray-500">{movie.origin_name}</p>
+          {/* ---- Controls bar — full width, plain icon+label buttons under
+               the player, mirroring the reference site's row (Yêu thích /
+               Thêm vào / Chuyển tập / Bỏ qua giới thiệu / Rạp phim / Chia sẻ /
+               Xem chung / Báo lỗi). Items without real backing functionality
+               yet (Thêm vào, Bỏ qua giới thiệu, Xem chung, Báo lỗi) show a
+               brief "coming soon" bubble instead of silently doing nothing. ---- */}
+          <div className="relative mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 pb-4">
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+            >
+              {isFav ? (
+                <FaHeart className="h-[18px] w-[18px] text-[#FECF59]" />
+              ) : (
+                <FaRegHeart className="h-[18px] w-[18px]" />
+              )}
+              <span className="text-[11px] font-medium">{t('movie.addFavorite')}</span>
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => showComingSoon('addToList')}
+                className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+              >
+                <FaPlus className="h-[18px] w-[18px]" />
+                <span className="text-[11px] font-medium">{t('movie.addToList')}</span>
+              </button>
+              {comingSoon === 'addToList' && <ComingSoonBubble />}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAutoNext(!autoNext)}
+              className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {autoNext ? (
+                  <FaToggleOn className="h-[18px] w-[18px] text-[#FECF59]" />
+                ) : (
+                  <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
-                {currentEpisodeData && (
-                  <p className="text-sm text-gray-400">
-                    {currentEpisodeData.name}
-                  </p>
+              </span>
+              <span className="text-[11px] font-medium">{t('watch.autoNext')}</span>
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => showComingSoon('skipIntro')}
+                className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+              >
+                <FaForward className="h-[18px] w-[18px]" />
+                <span className="text-[11px] font-medium">{t('watch.skipIntro')}</span>
+              </button>
+              {comingSoon === 'skipIntro' && <ComingSoonBubble />}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCinemaMode(!cinemaMode)}
+              className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {cinemaMode ? (
+                  <FaToggleOn className="h-[18px] w-[18px] text-[#FECF59]" />
+                ) : (
+                  <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
-                {/* Compact meta badges */}
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              </span>
+              <span className="text-[11px] font-medium">{t('watch.cinemaMode')}</span>
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShareOpen((v) => !v)}
+                className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+              >
+                <FaShareAlt className="h-4 w-4" />
+                <span className="text-[11px] font-medium">{t('movie.share')}</span>
+              </button>
+              <AnimatePresence>
+                {shareOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setShareOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-1/2 top-full z-30 mt-3 -translate-x-1/2 rounded-xl border border-white/10 bg-[#18181b] p-3 shadow-xl"
+                    >
+                      <ShareButtons url={window.location.href} title={movie.name} />
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => showComingSoon('watchParty')}
+                className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
+              >
+                <FaUsers className="h-[18px] w-[18px]" />
+                <span className="text-[11px] font-medium">{t('watch.watchParty')}</span>
+              </button>
+              {comingSoon === 'watchParty' && <ComingSoonBubble />}
+            </div>
+
+            <div className="relative ml-auto">
+              <button
+                type="button"
+                onClick={() => showComingSoon('report')}
+                className="flex items-center gap-1.5 text-sm text-white/60 transition-colors hover:text-white"
+              >
+                <FaFlag className="h-3.5 w-3.5" />
+                {t('watch.reportError')}
+              </button>
+              {comingSoon === 'report' && <ComingSoonBubble align="right" />}
+            </div>
+          </div>
+
+          {/* ---- Info row — poster + title/meta on the left, cast grid on
+               the right, mirroring the reference layout below the player. ---- */}
+          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
+            {/* Left: poster thumb + title/badges/status + short synopsis */}
+            <div className="flex flex-1 gap-4 min-w-0">
+              <Link
+                to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                className="w-20 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-28"
+              >
+                <img
+                  src={getMoviePoster(movie.poster_url, movie.thumb_url)}
+                  alt={movie.name}
+                  onError={onImgError}
+                  className="w-full"
+                />
+              </Link>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <div>
+                  <Link
+                    to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                    className="text-lg font-bold text-white transition-colors hover:text-[#FECF59] sm:text-xl"
+                  >
+                    {movie.name}
+                  </Link>
+                  {movie.origin_name && movie.origin_name !== movie.name && (
+                    <p className="text-sm italic text-[#FECF59]/80">{movie.origin_name}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  {movie.tmdb?.vote_average ? (
+                    <div className="flex items-center overflow-hidden rounded border border-solid border-[rgba(1,180,228,0.5)]">
+                      <span className="bg-[#01B4E4] px-1.5 py-1 text-white">TMDb</span>
+                      <span className="bg-[rgba(1,180,228,0.1)] px-1.5 py-1 text-white">
+                        {movie.tmdb.vote_average}
+                      </span>
+                    </div>
+                  ) : null}
                   {movie.year > 0 && (
-                    <span className="rounded bg-white/10 px-2 py-0.5 text-gray-300">
+                    <span className="rounded border border-white/15 bg-black/40 px-2.5 py-1 text-white/90">
                       {movie.year}
                     </span>
                   )}
                   {movie.quality && (
-                    <span className="rounded bg-blue-600 px-2 py-0.5 font-semibold text-white">
+                    <span className="rounded bg-blue-600 px-2.5 py-1 text-white">
                       {movie.quality}
                     </span>
                   )}
                   {movie.lang && (
-                    <span className="rounded bg-emerald-600 px-2 py-0.5 font-semibold text-white">
+                    <span className="rounded bg-emerald-600 px-2.5 py-1 text-white">
                       {movie.lang}
                     </span>
                   )}
-                  {movie.time && (
-                    <span className="text-gray-400">{movie.time}</span>
+                  {currentServer && currentEpisodeData && (
+                    <span className="rounded border border-white/15 bg-black/40 px-2.5 py-1 text-white/90">
+                      {currentEpisodeData.name}
+                    </span>
                   )}
                 </div>
+
+                {movie.category && movie.category.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {movie.category.slice(0, 4).map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        to={`/the-loai/${cat.slug}`}
+                        className="rounded-full border border-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
+                      >
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {movie.content && (
+                  <p className="line-clamp-2 text-sm leading-relaxed text-gray-400 sm:line-clamp-3">
+                    {movie.content.replace(/<[^>]*>/g, '')}
+                  </p>
+                )}
+
+                <Link
+                  to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
+                >
+                  {t('watch.movieInfo')}
+                  <FaChevronRight className="h-3 w-3" />
+                </Link>
               </div>
+            </div>
 
-              {/* Player controls bar */}
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                {/* Prev / Next buttons */}
-                <button
-                  onClick={goToPrev}
-                  disabled={!hasPrevEpisode}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <FaStepBackward className="h-3.5 w-3.5" />
-                  {t('watch.prevEpisode')}
-                </button>
-
-                <button
-                  onClick={goToNext}
-                  disabled={!hasNextEpisode}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t('watch.nextEpisode')}
-                  <FaStepForward className="h-3.5 w-3.5" />
-                </button>
-
-                <div className="ml-auto flex items-center gap-4">
-                  {/* Auto next toggle */}
-                  <button
-                    onClick={() => setAutoNext(!autoNext)}
-                    className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
-                  >
-                    {autoNext ? (
-                      <FaToggleOn className="h-5 w-5 text-red-500" />
-                    ) : (
-                      <FaToggleOff className="h-5 w-5" />
-                    )}
-                    {t('watch.autoNext')}
-                  </button>
-
-                  {/* Cinema mode toggle */}
-                  <button
-                    onClick={() => setCinemaMode(!cinemaMode)}
-                    className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
-                  >
-                    {cinemaMode ? (
-                      <FaToggleOn className="h-5 w-5 text-red-500" />
-                    ) : (
-                      <FaToggleOff className="h-5 w-5" />
-                    )}
-                    {t('watch.cinemaMode')}
-                  </button>
+            {/* Right: view count + cast grid */}
+            <div className="w-full shrink-0 lg:w-72 xl:w-80">
+              {movie.view ? (
+                <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm">
+                  <FaEye className="text-[#FECF59]" />
+                  {movie.view.toLocaleString()} {t('movie.views')}
                 </div>
-              </div>
+              ) : null}
 
-              {/* Server tabs — doubles as the language switcher when the
-                  server names encode Vietsub / Thuyết Minh / Lồng Tiếng
-                  (the normal case for "song ngữ" titles: each language is
-                  a separate server, not a track inside one file). */}
-              {episodes.length > 1 && (
-                <div className="mt-6">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">
-                    {episodes.some((ep) => detectServerLanguage(ep.server_name))
-                      ? t('watch.language', 'Ngôn ngữ')
-                      : t('watch.server')}
+              {movie.actor && movie.actor.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold text-gray-300">
+                    {t('movie.cast')}
                   </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {episodes.map((ep, idx) => {
-                      const lang = detectServerLanguage(ep.server_name);
-                      return (
-                        <button
-                          key={ep.server_name}
-                          onClick={() => navigateToEpisode(idx, 0)}
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                            idx === serverIndex
-                              ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
-                          }`}
-                        >
-                          {lang ? (
-                            <FaLanguage className="h-3.5 w-3.5" />
+                  <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-4">
+                    {(tmdbCast.length > 0
+                      ? tmdbCast.slice(0, 12).map((p) => ({
+                          key: String(p.id),
+                          name: p.name,
+                          photo: getTmdbImageUrl(p.profile_path),
+                        }))
+                      : movie.actor.slice(0, 12).map((name) => ({
+                          key: name,
+                          name,
+                          photo: null as string | null,
+                        }))
+                    ).map((person) => (
+                      <div key={person.key} className="flex flex-col items-center gap-1.5 text-center">
+                        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-gray-800 text-sm font-bold text-gray-500 ring-1 ring-white/10">
+                          {person.photo ? (
+                            <img
+                              src={person.photo}
+                              alt={person.name}
+                              loading="lazy"
+                              onError={onImgError}
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
-                            <FaServer className="h-3 w-3" />
+                            <FaUserCircle className="h-full w-full text-white/25" />
                           )}
-                          {lang ?? ep.server_name}
-                        </button>
-                      );
-                    })}
+                        </div>
+                        <span className="line-clamp-2 text-[11px] leading-tight text-gray-400">
+                          {person.name}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-
-              {/* Episode list — only show when the movie has real episodes.
-                  Single-"Full" phim lẻ hides the sidebar entirely to avoid a
-                  meaningless "Xem Phim" button on a page you're already
-                  watching. Instead, show a subtle single-episode notice. */}
-              {(() => {
-                // A real episode list only matters when some server actually
-                // has more than one episode to pick between. Having several
-                // servers (Vietsub, Lồng Tiếng, ...) that each hold just one
-                // "Full" entry is NOT a multi-episode movie — that case is
-                // already covered by the server tabs above, so the episode
-                // list here would just be a redundant duplicate.
-                const hasMultipleEpisodes = episodes.some(
-                  (ep) => (ep.server_data?.length ?? 0) > 1,
-                );
-
-                if (!hasMultipleEpisodes) {
-                  return (
-                    <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-sm text-gray-400 lg:hidden">
-                      {t("movie.singleMovieNote")}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="mt-6 lg:hidden">
-                    <EpisodeList
-                      episodes={episodes}
-                      currentEpisodeSlug={currentEpisodeData?.slug}
-                      currentServerName={currentServer?.server_name}
-                      movieSlug={movie.slug}
-                      preferSource={preferSource ?? undefined}
-                    />
-                  </div>
-                );
-              })()}
             </div>
+          </div>
 
-            {/* Right sidebar (desktop only) — only when some server actually
-                has more than one episode (see comment above for why having
-                multiple servers alone doesn't count). */}
-            {episodes.some((ep) => (ep.server_data?.length ?? 0) > 1) && (
-              <div className="hidden w-80 shrink-0 lg:block xl:w-96">
-                <div className="sticky top-20">
+          {/* ---- Episode section — full width, server/language tabs +
+               collapsible episode grid (single "Danh sách tập" block,
+               replacing the old split mobile/desktop sidebar). ---- */}
+          {episodes.length > 0 && (() => {
+            const hasMultipleEpisodes = episodes.some(
+              (ep) => (ep.server_data?.length ?? 0) > 1,
+            );
+
+            return (
+              <div className="mt-8">
+                {episodes.length > 1 && (
+                  <div className="mb-4">
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">
+                      {episodes.some((ep) => detectServerLanguage(ep.server_name))
+                        ? t('watch.language', 'Ngôn ngữ')
+                        : t('watch.server')}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {episodes.map((ep, idx) => {
+                        const lang = detectServerLanguage(ep.server_name);
+                        return (
+                          <button
+                            key={ep.server_name}
+                            onClick={() => navigateToEpisode(idx, 0)}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                              idx === serverIndex
+                                ? 'bg-[#FECF59] text-[#0f1115] shadow-md shadow-[#FECF59]/30'
+                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                            }`}
+                          >
+                            {lang ? (
+                              <FaLanguage className="h-3.5 w-3.5" />
+                            ) : (
+                              <FaServer className="h-3 w-3" />
+                            )}
+                            {lang ?? ep.server_name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {hasMultipleEpisodes ? (
                   <EpisodeList
                     episodes={episodes}
                     currentEpisodeSlug={currentEpisodeData?.slug}
                     currentServerName={currentServer?.server_name}
                     movieSlug={movie.slug}
                     preferSource={preferSource ?? undefined}
-                    compact
+                    showHeader={false}
+                    collapsible
                   />
-                </div>
+                ) : (
+                  <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-sm text-gray-400">
+                    {t('movie.singleMovieNote')}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Description + meta panel — meta block on the LEFT, overview on
-              the RIGHT to give the description the wider column. */}
-          {(movie.content || movie.category?.length || movie.director?.length) && (
-            <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <aside className="space-y-4 rounded-xl border border-gray-800 bg-gray-900/60 p-5 text-sm lg:order-1">
-                {movie.category && movie.category.length > 0 && (
-                  <div>
-                    <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {t('movie.genres', 'Thể loại')}
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {movie.category.map((g) => (
-                        <Link
-                          key={g.id}
-                          to={`/the-loai/${g.slug}`}
-                          className="rounded-full bg-gray-800 px-2.5 py-1 text-xs text-gray-300 transition-colors hover:bg-red-600 hover:text-white"
-                        >
-                          {g.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {movie.country && movie.country.length > 0 && (
-                  <div>
-                    <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {t('movie.country', 'Quốc gia')}
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {movie.country.map((c) => (
-                        <Link
-                          key={c.id}
-                          to={`/quoc-gia/${c.slug}`}
-                          className="rounded-full bg-gray-800 px-2.5 py-1 text-xs text-gray-300 transition-colors hover:bg-red-600 hover:text-white"
-                        >
-                          {c.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {movie.director && movie.director.length > 0 && (
-                  <div>
-                    <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {t('movie.director')}
-                    </h4>
-                    <p className="text-gray-300">{movie.director.join(', ')}</p>
-                  </div>
-                )}
-                {movie.actor && movie.actor.length > 0 && (
-                  <div>
-                    <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {t('movie.cast')}
-                    </h4>
-                    <p className="text-gray-300 leading-relaxed">
-                      {movie.actor.slice(0, 8).join(', ')}
-                      {movie.actor.length > 8 && '…'}
-                    </p>
-                  </div>
-                )}
-              </aside>
-
-              <div className="lg:col-span-2 lg:order-2">
-                <h2 className="mb-3 text-lg font-semibold text-white">
-                  {t('movie.overview')}
-                </h2>
-                <div
-                  className="rich-text prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: movie.content || '' }}
-                />
-              </div>
-            </section>
-          )}
+            );
+          })()}
 
           {/* You might also like */}
           <RelatedMovies

@@ -15,6 +15,13 @@ interface EpisodeListProps {
   compact?: boolean;
   /** Source hint for vsmov movies — appended as ?src= to preserve correct source. */
   preferSource?: string;
+  /** Hide the internal "Danh Sách Tập" heading — used when the parent
+   *  already provides its own heading/tab label (e.g. the episode section
+   *  on the watch page / movie detail page). */
+  showHeader?: boolean;
+  /** Show a "Rút gọn" switch that toggles the episode grid between a
+   *  scrollable capped-height box and the full, page-growing grid. */
+  collapsible?: boolean;
 }
 
 const EpisodeList: React.FC<EpisodeListProps> = ({
@@ -24,6 +31,8 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
   movieSlug,
   compact = false,
   preferSource,
+  showHeader = true,
+  collapsible = false,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -35,6 +44,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
   }, [episodes, currentServerName]);
 
   const [activeServer, setActiveServer] = useState(initialServer);
+  const [collapsed, setCollapsed] = useState(true);
 
   // Keep local state in sync when the parent re-resolves the active server.
   useEffect(() => {
@@ -68,12 +78,38 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
   return (
     <div className={containerCls}>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className={`font-semibold text-white ${compact ? "text-base" : "text-lg"}`}>
-          {t("movie.episodes")}
-        </h3>
-        {totalEps > 0 && (
-          <span className="text-xs text-gray-500">{totalEps} tập</span>
+        {showHeader ? (
+          <h3 className={`font-semibold text-white ${compact ? "text-base" : "text-lg"}`}>
+            {t("movie.episodes")}
+          </h3>
+        ) : (
+          <span />
         )}
+        <div className="flex items-center gap-3">
+          {totalEps > 0 && (
+            <span className="text-xs text-gray-500">{totalEps} tập</span>
+          )}
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setCollapsed((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-white"
+            >
+              {t("movie.collapseList", "Rút gọn")}
+              <span
+                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                  collapsed ? "bg-[#ffd166]" : "bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3 w-3 transform rounded-full bg-[#0f111a] transition-transform ${
+                    collapsed ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Server tabs (only when multiple servers) */}
@@ -101,11 +137,13 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
       {/* Episode buttons */}
       {currentServer && (
         <div
-          className={
+          className={`${
             compact
-              ? "grid grid-cols-3 gap-1.5 sm:grid-cols-4 max-h-[420px] overflow-y-auto pr-1"
-              : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 max-h-[420px] overflow-y-auto pr-1"
-          }
+              ? "grid grid-cols-3 gap-1.5 sm:grid-cols-4"
+              : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10"
+          } ${
+            !collapsible || collapsed ? "max-h-[420px] overflow-y-auto pr-1" : ""
+          }`}
         >
           {currentServer.server_data.map((serverData, idx) => {
             const isActive = currentEpisodeSlug === serverData.slug;

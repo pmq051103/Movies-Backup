@@ -92,6 +92,7 @@
     "episodes": "Episodes",
     "episodeCount": "Episode Count",
     "episodeUnit": "Episode",
+    "collapseList": "Collapse",
     "season": "Season",
     "recommendations": "Recommendations",
     "similar": "Similar",
@@ -102,6 +103,7 @@
     "studios": "Studios",
     "originalTitle": "Original Title",
     "singleMovieNote": "Standalone movie — no episode list, you are watching the full film.",
+    "addToList": "My List",
     "type": {
       "single": "Movie",
       "series": "Series",
@@ -121,7 +123,12 @@
     "resumePrompt": "Would you like to resume from where you left off?",
     "watchNow": "Watch Now",
     "youMightLike": "You might also like",
-    "exitCinema": "Exit cinema"
+    "exitCinema": "Exit cinema",
+    "skipIntro": "Skip Intro",
+    "watchParty": "Watch Party",
+    "reportError": "Report Issue",
+    "movieInfo": "Movie Info",
+    "comingSoon": "Coming soon"
   },
   "player": {
     "selectServer": "Select Server",
