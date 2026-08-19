@@ -22,6 +22,10 @@ interface EpisodeListProps {
   /** Show a "Rút gọn" switch that toggles the episode grid between a
    *  scrollable capped-height box and the full, page-growing grid. */
   collapsible?: boolean;
+  /** Hide the internal server/language tab row — used when the parent
+   *  already renders its own server/language switcher above this list
+   *  (e.g. WatchPage), so the two don't stack as duplicate tab rows. */
+  showServerTabs?: boolean;
 }
 
 const EpisodeList: React.FC<EpisodeListProps> = ({
@@ -33,6 +37,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
   preferSource,
   showHeader = true,
   collapsible = false,
+  showServerTabs = true,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -112,8 +117,10 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
         </div>
       </div>
 
-      {/* Server tabs (only when multiple servers) */}
-      {episodes.length > 1 && (
+      {/* Server tabs (only when multiple servers) — suppressed when the
+          parent page already renders its own server/language switcher,
+          so the two don't stack as duplicate rows. */}
+      {showServerTabs && episodes.length > 1 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
           {episodes.map((ep, idx) => (
             <button
@@ -140,7 +147,7 @@ const EpisodeList: React.FC<EpisodeListProps> = ({
           className={`${
             compact
               ? "grid grid-cols-3 gap-1.5 sm:grid-cols-4"
-              : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10"
+              : "grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8"
           } ${
             !collapsible || collapsed ? "max-h-[420px] overflow-y-auto pr-1" : ""
           }`}

@@ -15,16 +15,16 @@ import {
   FaPlus,
   FaForward,
   FaShareAlt,
-  FaUsers,
-  FaFlag,
   FaEye,
   FaChevronRight,
   FaUserCircle,
+  FaCheckCircle,
+  FaClock,
 } from 'react-icons/fa';
 
 import { EpisodeList, MovieRow } from '@/components/movie';
 import { ShareButtons } from '@/components/common';
-import { ROUTES } from '@/constants';
+import { ROUTES, MOVIE_STATUS } from '@/constants';
 import {
   useMovieDetail,
   useMoviesInGenre,
@@ -261,6 +261,41 @@ export default function WatchPage() {
   const movie = data?.movie ?? null;
   const episodes = data?.episodes ?? [];
 
+  // Vietnamese label for the production status badge — same mapping used
+  // on MovieDetailPage, kept in sync so both pages agree on wording.
+  const statusLabel = movie
+    ? movie.status === MOVIE_STATUS.COMPLETED
+      ? 'Hoàn thành'
+      : movie.status === MOVIE_STATUS.ONGOING
+        ? 'Đang chiếu'
+        : movie.status === MOVIE_STATUS.TRAILER
+          ? 'Sắp chiếu'
+          : ''
+    : '';
+  // "Phần N" chip — parsed out of the title/alias text, no dedicated
+  // season field in the API (same heuristic as MovieDetailPage).
+  const seasonLabel = (() => {
+    if (!movie) return '';
+    const src = `${movie.name} ${movie.origin_name ?? ''}`;
+    const m = src.match(/Phần\s*(\d+)/i) ?? src.match(/Season\s*(\d+)/i);
+    return m ? `Phần ${m[1]}` : '';
+  })();
+  // Colored quality chip — 4K/FHD/HD get distinct accent colors, same
+  // palette as MovieDetailPage.
+  const qualityStyle = (() => {
+    const q = (movie?.quality || '').toUpperCase();
+    if (q.includes('4K') || q.includes('2160'))
+      return { text: '#ff5c8a', border: '#ff5c8a', bg: 'rgba(255,92,138,0.12)' };
+    if (q.includes('FHD') || q.includes('1080'))
+      return { text: '#a78bfa', border: '#a78bfa', bg: 'rgba(167,139,250,0.12)' };
+    if (q.includes('HD') || q.includes('720'))
+      return { text: '#34d399', border: '#34d399', bg: 'rgba(52,211,153,0.12)' };
+    return { text: '#60a5fa', border: '#60a5fa', bg: 'rgba(96,165,250,0.12)' };
+  })();
+  const hasEpisodeList = episodes.some(
+    (ep) => (ep.server_data?.length ?? 0) > 1,
+  );
+
   // Real actor headshots (falls back to initials avatars when there's no
   // TMDB api key / tmdb id) — same source the movie detail page's
   // "Diễn viên" tab uses, so the cast grid looks consistent across pages.
@@ -450,10 +485,15 @@ export default function WatchPage() {
       if (e.data.action === 'toggleFullscreen') {
         setCinemaMode(!cinemaMode);
       }
+      // Sent when the "next episode" button in player.html's own control
+      // bar is clicked (mirrors the reference player's layout).
+      if (e.data.action === 'nextEpisode') {
+        goToNext();
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [navigate, cinemaMode, setCinemaMode]);
+  }, [navigate, cinemaMode, setCinemaMode, goToNext]);
 
   // Keep the in-iframe player's fullscreen button icon in sync with
   // cinema mode. On iOS that button toggles cinema mode instead of native
@@ -804,8 +844,8 @@ export default function WatchPage() {
                the player, mirroring the reference site's row (Yêu thích /
                Thêm vào / Chuyển tập / Bỏ qua giới thiệu / Rạp phim / Chia sẻ /
                Xem chung / Báo lỗi). Items without real backing functionality
-               yet (Thêm vào, Bỏ qua giới thiệu, Xem chung, Báo lỗi) show a
-               brief "coming soon" bubble instead of silently doing nothing. ---- */}
+               yet (Thêm vào, Bỏ qua giới thiệu) show a brief "coming soon"
+               bubble instead of silently doing nothing. ---- */}
           <div className="relative mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 pb-4">
             <button
               type="button"
@@ -900,40 +940,20 @@ export default function WatchPage() {
                 )}
               </AnimatePresence>
             </div>
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => showComingSoon('watchParty')}
-                className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
-              >
-                <FaUsers className="h-[18px] w-[18px]" />
-                <span className="text-[11px] font-medium">{t('watch.watchParty')}</span>
-              </button>
-              {comingSoon === 'watchParty' && <ComingSoonBubble />}
-            </div>
-
-            <div className="relative ml-auto">
-              <button
-                type="button"
-                onClick={() => showComingSoon('report')}
-                className="flex items-center gap-1.5 text-sm text-white/60 transition-colors hover:text-white"
-              >
-                <FaFlag className="h-3.5 w-3.5" />
-                {t('watch.reportError')}
-              </button>
-              {comingSoon === 'report' && <ComingSoonBubble align="right" />}
-            </div>
           </div>
 
-          {/* ---- Info row — poster + title/meta on the left, cast grid on
-               the right, mirroring the reference layout below the player. ---- */}
+          {/* ---- Info row — poster + title/badges block, description
+               beside it, cast grid on the far right, mirroring the
+               reference layout below the player. Badge styling ported
+               from MovieDetailPage's left sidebar so both pages agree
+               visually (gold IMDb outline, colored quality chip, green/
+               amber completion pill with icon). ---- */}
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
-            {/* Left: poster thumb + title/badges/status + short synopsis */}
+            {/* Left: poster thumb + (title/badges column | description column) */}
             <div className="flex flex-1 gap-4 min-w-0">
               <Link
                 to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                className="w-20 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-28"
+                className="relative w-20 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-28"
               >
                 <img
                   src={getMoviePoster(movie.poster_url, movie.thumb_url)}
@@ -941,79 +961,120 @@ export default function WatchPage() {
                   onError={onImgError}
                   className="w-full"
                 />
+                {movie.lang && (
+                  <span className="absolute left-1.5 top-1.5 rounded bg-[#01B4E4] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
+                    {movie.lang}
+                  </span>
+                )}
               </Link>
 
-              <div className="min-w-0 flex-1 space-y-2">
-                <div>
-                  <Link
-                    to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                    className="text-lg font-bold text-white transition-colors hover:text-[#FECF59] sm:text-xl"
-                  >
-                    {movie.name}
-                  </Link>
-                  {movie.origin_name && movie.origin_name !== movie.name && (
-                    <p className="text-sm italic text-[#FECF59]/80">{movie.origin_name}</p>
-                  )}
-                </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:gap-6">
+                {/* Title / badges / genres / status — fixed-width column */}
+                <div className="min-w-0 space-y-2.5 sm:w-60 sm:shrink-0">
+                  <div>
+                    <Link
+                      to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                      className="text-lg font-bold text-white transition-colors hover:text-[#FECF59] sm:text-xl"
+                    >
+                      {movie.name}
+                    </Link>
+                    {movie.origin_name && movie.origin_name !== movie.name && (
+                      <p className="text-sm italic text-gray-400">{movie.origin_name}</p>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-                  {movie.tmdb?.vote_average ? (
-                    <div className="flex items-center overflow-hidden rounded border border-solid border-[rgba(1,180,228,0.5)]">
-                      <span className="bg-[#01B4E4] px-1.5 py-1 text-white">TMDb</span>
-                      <span className="bg-[rgba(1,180,228,0.1)] px-1.5 py-1 text-white">
-                        {movie.tmdb.vote_average}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                    {(movie.tmdb?.vote_average || movie.imdb?.id) && (
+                      <span className="flex items-center gap-1 rounded-md border border-[#FECF59] bg-transparent px-2.5 py-1">
+                        <span className="font-extrabold text-[#FECF59]">IMDb</span>
+                        <span className="font-bold text-white">
+                          {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
+                        </span>
                       </span>
+                    )}
+                    {movie.quality && (
+                      <span
+                        className="rounded-md border px-2.5 py-1 font-bold"
+                        style={{
+                          color: qualityStyle.text,
+                          borderColor: qualityStyle.border,
+                          backgroundColor: qualityStyle.bg,
+                        }}
+                      >
+                        {movie.quality}
+                      </span>
+                    )}
+                    {movie.year > 0 && (
+                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                        {movie.year}
+                      </span>
+                    )}
+                    {seasonLabel && (
+                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                        {seasonLabel}
+                      </span>
+                    )}
+                    {movie.episode_current && (
+                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                        {movie.episode_current}
+                        {movie.episode_total ? ` / ${movie.episode_total}` : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {movie.category && movie.category.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {movie.category.slice(0, 4).map((cat) => (
+                        <Link
+                          key={cat.slug}
+                          to={`/the-loai/${cat.slug}`}
+                          className="rounded-full border border-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
                     </div>
-                  ) : null}
-                  {movie.year > 0 && (
-                    <span className="rounded border border-white/15 bg-black/40 px-2.5 py-1 text-white/90">
-                      {movie.year}
-                    </span>
                   )}
-                  {movie.quality && (
-                    <span className="rounded bg-blue-600 px-2.5 py-1 text-white">
-                      {movie.quality}
-                    </span>
-                  )}
-                  {movie.lang && (
-                    <span className="rounded bg-emerald-600 px-2.5 py-1 text-white">
-                      {movie.lang}
-                    </span>
-                  )}
-                  {currentServer && currentEpisodeData && (
-                    <span className="rounded border border-white/15 bg-black/40 px-2.5 py-1 text-white/90">
-                      {currentEpisodeData.name}
-                    </span>
+
+                  {/* Progress / status pill — green + checkmark once
+                      complete, amber + clock while still ongoing. */}
+                  {hasEpisodeList && movie.episode_current && (
+                    <div
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        movie.status === MOVIE_STATUS.COMPLETED
+                          ? 'bg-emerald-500/15 text-emerald-400'
+                          : 'bg-amber-500/15 text-amber-400'
+                      }`}
+                    >
+                      {movie.status === MOVIE_STATUS.COMPLETED ? (
+                        <FaCheckCircle className="text-[10px]" />
+                      ) : (
+                        <FaClock className="text-[10px]" />
+                      )}
+                      {statusLabel ? `${statusLabel}: ` : ''}
+                      {movie.episode_current}
+                      {movie.episode_total ? ` / ${movie.episode_total}` : ''}
+                    </div>
                   )}
                 </div>
 
-                {movie.category && movie.category.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {movie.category.slice(0, 4).map((cat) => (
-                      <Link
-                        key={cat.slug}
-                        to={`/the-loai/${cat.slug}`}
-                        className="rounded-full border border-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
+                {/* Description — sits to the right of the title/badges
+                    column, not stacked below it. */}
+                {movie.content && (
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="line-clamp-4 text-sm leading-relaxed text-gray-400 sm:line-clamp-5">
+                      {movie.content.replace(/<[^>]*>/g, '')}
+                    </p>
+
+                    <Link
+                      to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
+                    >
+                      {t('watch.movieInfo')}
+                      <FaChevronRight className="h-3 w-3" />
+                    </Link>
                   </div>
                 )}
-
-                {movie.content && (
-                  <p className="line-clamp-2 text-sm leading-relaxed text-gray-400 sm:line-clamp-3">
-                    {movie.content.replace(/<[^>]*>/g, '')}
-                  </p>
-                )}
-
-                <Link
-                  to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
-                >
-                  {t('watch.movieInfo')}
-                  <FaChevronRight className="h-3 w-3" />
-                </Link>
               </div>
             </div>
 
@@ -1031,20 +1092,20 @@ export default function WatchPage() {
                   <h3 className="mb-3 text-sm font-semibold text-gray-300">
                     {t('movie.cast')}
                   </h3>
-                  <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-4">
+                  <div className="grid grid-cols-3 gap-4">
                     {(tmdbCast.length > 0
-                      ? tmdbCast.slice(0, 12).map((p) => ({
+                      ? tmdbCast.slice(0, 9).map((p) => ({
                           key: String(p.id),
                           name: p.name,
                           photo: getTmdbImageUrl(p.profile_path),
                         }))
-                      : movie.actor.slice(0, 12).map((name) => ({
+                      : movie.actor.slice(0, 9).map((name) => ({
                           key: name,
                           name,
                           photo: null as string | null,
                         }))
                     ).map((person) => (
-                      <div key={person.key} className="flex flex-col items-center gap-1.5 text-center">
+                      <div key={person.key} className="flex flex-col items-center gap-2 text-center">
                         <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-gray-800 text-sm font-bold text-gray-500 ring-1 ring-white/10">
                           {person.photo ? (
                             <img
@@ -1058,7 +1119,7 @@ export default function WatchPage() {
                             <FaUserCircle className="h-full w-full text-white/25" />
                           )}
                         </div>
-                        <span className="line-clamp-2 text-[11px] leading-tight text-gray-400">
+                        <span className="line-clamp-2 text-xs leading-tight text-gray-400">
                           {person.name}
                         </span>
                       </div>
@@ -1120,6 +1181,7 @@ export default function WatchPage() {
                     movieSlug={movie.slug}
                     preferSource={preferSource ?? undefined}
                     showHeader={false}
+                    showServerTabs={false}
                     collapsible
                   />
                 ) : (
