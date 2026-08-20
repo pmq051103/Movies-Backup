@@ -20,6 +20,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaCompress,
+  FaExpand,
 } from 'react-icons/fa';
 
 import { EpisodeListPanel, MovieRow } from '@/components/movie';
@@ -935,7 +936,7 @@ export default function WatchPage() {
                   <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="hidden text-sm font-medium sm:inline">{t('watch.autoNext')}</span>
+              <span className="text-xs font-medium sm:text-sm">{t('watch.autoNext')}</span>
             </button>
 
             <div className="relative">
@@ -957,12 +958,14 @@ export default function WatchPage() {
             >
               <span className="inline-flex items-center gap-1.5">
                 {cinemaMode ? (
-                  <FaToggleOn className="h-[18px] w-[18px] text-[#FECF59]" />
+                  <FaCompress className="h-[18px] w-[18px] text-[#FECF59]" />
                 ) : (
-                  <FaToggleOff className="h-[18px] w-[18px]" />
+                  <FaExpand className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="hidden text-sm font-medium sm:inline">{t('watch.cinemaMode')}</span>
+              <span className="text-xs font-medium sm:text-sm">
+                {cinemaMode ? t('watch.exitCinema') : t('watch.cinemaMode')}
+              </span>
             </button>
 
             <div className="relative">

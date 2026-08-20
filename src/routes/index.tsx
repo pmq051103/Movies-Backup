@@ -20,6 +20,7 @@ const WatchPage = lazy(() => import("@/pages/WatchPage"));
 const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
 const HistoryPage = lazy(() => import("@/pages/HistoryPage"));
 const NowPlayingPage = lazy(() => import("@/pages/NowPlayingPage"));
+const Phim4KPage = lazy(() => import("@/pages/Phim4KPage"));
 const DonatePage = lazy(() => import("@/pages/DonatePage"));
 const DownloadAppPage = lazy(() => import("@/pages/DownloadAppPage"));
 const StatsPage = lazy(() => import("@/pages/StatsPage"));
@@ -69,6 +70,7 @@ export default function AppRoutes() {
             <Route path="/the-loai/:slug" element={<GenrePage />} />
             <Route path="/quoc-gia/:slug" element={<CountryPage />} />
             <Route path="/phim-chieu-rap" element={<NowPlayingPage />} />
+            <Route path="/phim-4k" element={<Phim4KPage />} />
             <Route path="/top-rated" element={<TopRatedPage />} />
             <Route path="/tim-kiem" element={<SearchPage />} />
             <Route path="/phim/:slug" element={<MovieDetailPage />} />

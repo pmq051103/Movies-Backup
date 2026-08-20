@@ -8,16 +8,19 @@ import { FaChevronRight, FaPlay } from 'react-icons/fa';
 import {
   HeroBanner,
   MovieRow,
-  SpotlightGrid,
   TopRankingRow,
   MovieCarousel,
   AnimeShowcase,
+  Phim4KSection,
 } from '@/components/movie';
 import { SectionTitle } from '@/components/common';
 import { useHistoryStore } from '@/store';
 import {
   useLatestMovies,
   useMoviesBySlug,
+  useMoviesInGenre,
+  useSearchMovies,
+  useVsmov4K,
   useGenres,
   useHeroMovies,
 } from '@/hooks';
@@ -59,7 +62,7 @@ interface TopicCardsProps {
 }
 
 function TopicCards({ genres }: TopicCardsProps) {
-  const topics = genres.slice(0, 6);
+  const topics = genres.slice(0, 5);
 
   if (topics.length === 0) return null;
 
@@ -70,6 +73,30 @@ function TopicCards({ genres }: TopicCardsProps) {
       </h2>
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Premium 4K slot — always first, links to the dedicated 4K page */}
+        <Link
+          to={ROUTES.PHIM_4K}
+          className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:h-[138px] lg:min-w-0"
+          style={{ background: 'linear-gradient(135deg, #1f1147 0%, #3a1c71 45%, #c2410c 100%)' }}
+        >
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#ffd166]/25 blur-xl transition-transform duration-500 group-hover:scale-110 sm:h-32 sm:w-32" />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0)_58%)]" />
+          <div className="relative z-10 flex h-full w-full flex-col justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center rounded-md bg-[linear-gradient(135deg,#ffd166,#ff9f43)] px-1.5 py-0.5 text-[9px] font-black tracking-wide text-[#1a1205] sm:text-[11px]">
+                4K
+              </span>
+              <h3 className="select-none text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
+                Phim 4K
+              </h3>
+            </div>
+            <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
+              Xem tất cả
+              <FaChevronRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5" />
+            </span>
+          </div>
+        </Link>
+
         {topics.map((genre, idx) => (
           <Link
             key={genre._id}
@@ -91,7 +118,7 @@ function TopicCards({ genres }: TopicCardsProps) {
           </Link>
         ))}
 
-        {genres.length > 6 && (
+        {genres.length > 5 && (
           <Link
             to={ROUTES.GENRES}
             className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:hidden"
@@ -101,7 +128,7 @@ function TopicCards({ genres }: TopicCardsProps) {
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_58%)]" />
             <div className="relative z-10 flex h-full w-full flex-col justify-between">
               <h3 className="line-clamp-2 select-none pr-[28%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
-                +{genres.length - 6} chủ đề
+                +{genres.length - 5} chủ đề
               </h3>
               <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
                 Khám phá
@@ -128,12 +155,8 @@ export default function HomePage() {
   const { data: latestPage2 } = useLatestMovies(2);
   const { data: latestPage3 } = useLatestMovies(3);
   const { data: genres } = useGenres();
-  const { data: singleMovies } = useMoviesBySlug('phim-le', { page: 1 });
-  const { data: tvShows } = useMoviesBySlug('phim-bo', { page: 1 });
   const { data: anime } = useMoviesBySlug('hoat-hinh', { page: 1 });
-  const { data: tvShowsCategory } = useMoviesBySlug('tv-shows', { page: 1 });
   const { data: vietsub } = useMoviesBySlug('phim-vietsub', { page: 1 });
-  const { data: thuyetMinh } = useMoviesBySlug('phim-thuyet-minh', { page: 1 });
   const { data: longTieng } = useMoviesBySlug('phim-long-tieng', { page: 1 });
 
   const { data: topMoviesByViews } = useMoviesBySlug('phim-le', {
@@ -144,24 +167,18 @@ export default function HomePage() {
   });
 
   const { data: nowPlayingData } = useMoviesBySlug('phim-chieu-rap', { page: 1 });
-  const { data: topRatedData } = useMoviesBySlug('phim-le', {
-    page: 1, sort_field: 'tmdb.vote_average', sort_type: 'desc',
-  });
-  const { data: topNowPlayingByRating } = useMoviesBySlug('phim-chieu-rap', {
-    page: 1, sort_field: 'tmdb.vote_average', sort_type: 'desc',
-  });
-  const { data: topVietCinema } = useMoviesBySlug('phim-chieu-rap', {
-    page: 1, country: 'viet-nam', sort_field: 'modified.time', sort_type: 'desc',
-  });
-  const currentYear = new Date().getFullYear();
-  const { data: blockbusterData } = useMoviesBySlug('phim-le', {
-    page: 1, sort_field: 'view_total', sort_type: 'desc', year: currentYear,
-    country: 'au-my',
-  });
   const { data: subteamData } = useMoviesBySlug('subteam', { page: 1 });
   const { data: upcomingData } = useMoviesBySlug('phim-sap-chieu', {
     page: 1, status: 'trailer',
   });
+
+  /* ── New homepage sections (funny renames + 4K) ── */
+  // Horror — "Tôi Sợ Con Người Em Rồi Đó, nhưng Không Bằng Sợ Ma"
+  const { data: horrorData } = useMoviesInGenre('kinh-di', { page: 1 });
+  // Doraemon — "Ăn cơm cùng Doraemon"
+  const { data: doraemonData } = useSearchMovies({ keyword: 'doraemon', limit: 24 });
+  // Phim 4K — vsmov premium 4K catalog
+  const { data: phim4kData } = useVsmov4K(1);
 
   /* ── Derived data ── */
   const heroBannerMovies = useMemo(
@@ -203,11 +220,6 @@ export default function HomePage() {
     });
   }, [latestData, latestPage2, latestPage3]);
 
-  const spotlightItems = useMemo(
-    () => latestData?.items.slice(6, 14) ?? [],
-    [latestData],
-  );
-
   const nowPlayingSpotlight = useMemo(
     () => nowPlayingData?.items?.slice(0, 10) ?? [],
     [nowPlayingData],
@@ -216,16 +228,6 @@ export default function HomePage() {
   const animeSpotlight = useMemo(
     () => anime?.items?.slice(0, 13) ?? [],
     [anime],
-  );
-
-  const vietCinemaSpotlight = useMemo(
-    () => topVietCinema?.items?.slice(0, 8) ?? [],
-    [topVietCinema],
-  );
-
-  const blockbusterSpotlight = useMemo(
-    () => blockbusterData?.items?.slice(0, 8) ?? [],
-    [blockbusterData],
   );
 
   return (
@@ -297,32 +299,34 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Đề Cử — Spotlight (1 big + 4 small) ── */}
-            {spotlightItems.length >= 5 && (
-              <motion.section variants={itemVariants}>
-                <SpotlightGrid
-                  title={t('home.spotlight', 'Phim đề cử')}
-                  movies={spotlightItems}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Mới Cập Nhật Hôm Nay ── */}
+            {/* ── Phim Điện Ảnh Mới Coóng ── */}
             {updatedTodayItems.length > 0 && (
               <motion.section variants={itemVariants}>
                 <MovieRow
-                  title={t('home.newToday', 'Phim Mới Cập Nhật Hôm Nay')}
+                  title={t('home.newToday', 'Phim Điện Ảnh Mới Coóng')}
                   movies={updatedTodayItems}
+                  viewAllLink={ROUTES.MOVIES}
                   limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── Phim Chiếu Rạp — landscape carousel, 10 titles ── */}
+            {/* ── Top 10 phim bộ hôm nay — Ranking by views ── */}
+            {topSeriesByViews?.items && topSeriesByViews.items.length > 0 && (
+              <motion.section variants={itemVariants}>
+                <TopRankingRow
+                  title={t('home.topSeries', 'Top 10 phim bộ hôm nay')}
+                  movies={topSeriesByViews.items}
+                  viewAllLink={ROUTES.TV_SHOWS}
+                />
+              </motion.section>
+            )}
+
+            {/* ── Mãn Nhãn với Phim Chiếu Rạp — landscape carousel ── */}
             {nowPlayingSpotlight.length >= 5 && (
               <motion.section variants={itemVariants}>
                 <MovieCarousel
-                  title={t('home.nowPlaying', 'Phim Chiếu Rạp')}
+                  title={t('home.nowPlaying', 'Mãn Nhãn với Phim Chiếu Rạp')}
                   movies={nowPlayingSpotlight}
                   viewAllLink={ROUTES.NOW_PLAYING}
                   variant="cinema"
@@ -331,104 +335,11 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Phim Bom Tấn — Spotlight ── */}
-            {blockbusterSpotlight.length >= 5 && (
-              <motion.section variants={itemVariants}>
-                <SpotlightGrid
-                  title={t('home.blockbuster', 'Phim Bom Tấn')}
-                  movies={blockbusterSpotlight}
-                  viewAllLink={ROUTES.MOVIES + '?sortField=view_total&sortType=desc&year=' + currentYear}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Top 10 Bom Tấn — Ranking ⭐ ── */}
-            {blockbusterData?.items && blockbusterData.items.length > 5 && (
-              <motion.section variants={itemVariants}>
-                <TopRankingRow
-                  title={t('home.topBlockbuster', 'Top 10 Bom Tấn ' + currentYear)}
-                  movies={blockbusterData.items.slice(5)}
-                  viewAllLink={ROUTES.MOVIES + '?sortField=view_total&sortType=desc&year=' + currentYear}
-                  showRating
-                />
-              </motion.section>
-            )}
-
-            {/* ── Top Phim Đáng Xem — Ranking ⭐ ── */}
-            {topRatedData?.items && topRatedData.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <TopRankingRow
-                  title={t('home.topMustWatch', 'Top Phim Đáng Xem')}
-                  movies={topRatedData.items}
-                  viewAllLink={ROUTES.TOP_RATED}
-                  showRating
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Việt Chiếu Rạp — Spotlight ── */}
-            {vietCinemaSpotlight.length >= 5 && (
-              <motion.section variants={itemVariants}>
-                <SpotlightGrid
-                  title={t('home.topVietCinema', 'Phim Việt Chiếu Rạp')}
-                  movies={vietCinemaSpotlight}
-                  viewAllLink={ROUTES.NOW_PLAYING + '?country=viet-nam'}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Lẻ Mới — horizontal scroll ── */}
-            {singleMovies?.items && singleMovies.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <MovieRow
-                  title={t('home.latestMovies')}
-                  movies={singleMovies.items}
-                  viewAllLink={ROUTES.MOVIES}
-                  limit={10}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Top 10 Chiếu Rạp — Ranking ⭐ ── */}
-            {topNowPlayingByRating?.items && topNowPlayingByRating.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <TopRankingRow
-                  title={t('home.topNowPlaying', 'Top 10 Chiếu Rạp')}
-                  movies={topNowPlayingByRating.items}
-                  viewAllLink={ROUTES.NOW_PLAYING}
-                  showRating
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Bộ Mới — horizontal scroll ── */}
-            {tvShows?.items && tvShows.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <MovieRow
-                  title={t('home.latestTVShows')}
-                  movies={tvShows.items}
-                  viewAllLink={ROUTES.TV_SHOWS}
-                  limit={10}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Top 10 Phim Lẻ — Ranking by views ── */}
-            {topMoviesByViews?.items && topMoviesByViews.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <TopRankingRow
-                  title={t('home.topMovies', 'Top 10 Phim Lẻ')}
-                  movies={topMoviesByViews.items}
-                  viewAllLink={ROUTES.MOVIES}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Sắp Cập Nhật — trailer-only landscape carousel, 10 titles ── */}
+            {/* ── Phim Sắp Tới Trên Rổ — trailer-only landscape carousel ── */}
             {upcomingData?.items && upcomingData.items.length > 0 && (
               <motion.section variants={itemVariants}>
                 <MovieCarousel
-                  title={t('home.upcoming', 'Phim Sắp Cập Nhật')}
+                  title={t('home.upcoming', 'Phim Sắp Tới Trên Rổ')}
                   movies={upcomingData.items}
                   viewAllLink={ROUTES.MOVIES + '?status=trailer'}
                   variant="upcoming"
@@ -437,11 +348,22 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Anime — big spotlight panel + thumbnail filmstrip ── */}
+            {/* ── Top 10 Phim Lẻ Hay Nhức Nách — Ranking by views ── */}
+            {topMoviesByViews?.items && topMoviesByViews.items.length > 0 && (
+              <motion.section variants={itemVariants}>
+                <TopRankingRow
+                  title={t('home.topMovies', 'Top 10 Phim Lẻ Hay Nhức Nách')}
+                  movies={topMoviesByViews.items}
+                  viewAllLink={ROUTES.MOVIES}
+                />
+              </motion.section>
+            )}
+
+            {/* ── Kho Tàng Anime Mới Nhất — spotlight panel + filmstrip ── */}
             {animeSpotlight.length >= 5 && (
               <motion.section variants={itemVariants}>
                 <AnimeShowcase
-                  title={t('home.anime')}
+                  title={t('home.anime', 'Kho Tàng Anime Mới Nhất')}
                   movies={animeSpotlight}
                   viewAllLink={ROUTES.ANIME}
                   limit={13}
@@ -449,25 +371,38 @@ export default function HomePage() {
               </motion.section>
             )}
 
-            {/* ── Top 10 Phim Bộ — Ranking by views ── */}
-            {topSeriesByViews?.items && topSeriesByViews.items.length > 0 && (
+            {/* ── Tôi Sợ Con Người Em Rồi Đó, nhưng Không Bằng Sợ Ma (Kinh dị) ── */}
+            {horrorData?.items && horrorData.items.length > 0 && (
               <motion.section variants={itemVariants}>
-                <TopRankingRow
-                  title={t('home.topSeries', 'Top 10 Phim Bộ')}
-                  movies={topSeriesByViews.items}
-                  viewAllLink={ROUTES.TV_SHOWS}
+                <MovieRow
+                  title={t('home.horror', 'Tôi Sợ Con Người Em Rồi Đó, nhưng Không Bằng Sợ Ma')}
+                  movies={horrorData.items}
+                  viewAllLink={ROUTES.GENRE_DETAIL('kinh-di')}
+                  limit={10}
                 />
               </motion.section>
             )}
 
-            {/* ── TV Shows — horizontal scroll ── */}
-            {tvShowsCategory?.items && tvShowsCategory.items.length > 0 && (
+            {/* ── Ăn cơm cùng Doraemon ── */}
+            {doraemonData?.items && doraemonData.items.length > 0 && (
               <motion.section variants={itemVariants}>
                 <MovieRow
-                  title={t('home.tvShowsCategory', 'TV Shows')}
-                  movies={tvShowsCategory.items}
-                  viewAllLink={ROUTES.TV_SHOW_PROGRAMS}
+                  title={t('home.doraemon', 'Ăn cơm cùng Doraemon')}
+                  movies={doraemonData.items}
+                  viewAllLink={ROUTES.SEARCH + '?keyword=doraemon'}
                   limit={10}
+                />
+              </motion.section>
+            )}
+
+            {/* ── Phim 4K — premium showcase (vsmov 4K catalog) ── */}
+            {phim4kData?.items && phim4kData.items.length > 0 && (
+              <motion.section variants={itemVariants}>
+                <Phim4KSection
+                  title={t('home.phim4k', 'Phim 4K')}
+                  movies={phim4kData.items}
+                  viewAllLink={ROUTES.PHIM_4K}
+                  limit={12}
                 />
               </motion.section>
             )}
@@ -478,17 +413,6 @@ export default function HomePage() {
                 <MovieRow
                   title={t('home.vietsub', 'Phim Vietsub')}
                   movies={vietsub.items}
-                  limit={10}
-                />
-              </motion.section>
-            )}
-
-            {/* ── Phim Thuyết Minh — horizontal scroll ── */}
-            {thuyetMinh?.items && thuyetMinh.items.length > 0 && (
-              <motion.section variants={itemVariants}>
-                <MovieRow
-                  title={t('home.thuyetMinh', 'Phim Thuyết Minh')}
-                  movies={thuyetMinh.items}
                   limit={10}
                 />
               </motion.section>

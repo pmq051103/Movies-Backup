@@ -138,6 +138,67 @@ function normalizeOphimDetail(raw: MovieDetailResponse): MovieDetailResponse {
 }
 
 /* ------------------------------------------------------------------ */
+/* vsmov.com normalisation                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * vsmov's images are usually absolute `https://vsmov.com/storage/...`
+ * URLs, but some records return `poster_url: {}` (an empty object). Guard
+ * against non-string values so the card renderers get a clean string.
+ */
+function resolveVsmovImage(path: unknown): string {
+  if (typeof path !== 'string' || path.length === 0) return '';
+  return path;
+}
+
+/**
+ * vsmov's flat list endpoints (e.g. `/danh-sach/4k`) are lean like
+ * ophim's — no `quality`, `lang`, `episode_current`, `type`, `chieurap`.
+ * Fill sane defaults so the cards render full badges. For the 4K feed we
+ * hard-set `quality: '4K'` so the premium card can show its 4K badge even
+ * before the movie detail loads.
+ */
+function normalizeVsmov4KItem(raw: MovieListItem): MovieListItem {
+  const isSeries = (raw as unknown as { tmdb?: { type?: string } })?.tmdb?.type === 'tv';
+  return {
+    ...raw,
+    poster_url: resolveVsmovImage(raw.poster_url),
+    thumb_url: resolveVsmovImage(raw.thumb_url),
+    episode_current: raw.episode_current ?? (isSeries ? 'Đang cập nhật' : 'Full'),
+    episode_total: raw.episode_total ?? '',
+    quality: '4K',
+    lang: raw.lang ?? 'Vietsub',
+    type: raw.type ?? (isSeries ? 'series' : 'single'),
+    chieurap: raw.chieurap ?? false,
+  };
+}
+
+/**
+ * vsmov's premium 4K catalog — flat `/danh-sach/4k` endpoint
+ * (`{ status, items, pagination }`). vsmov only has the legacy flat shape
+ * (no `/v1/api/...`). Items are tagged `_source: 'vsmov'` so the detail
+ * page loads the correct source, and normalised with `quality: '4K'`.
+ */
+export async function getVsmov4KMovies(
+  page = 1,
+): Promise<APIListResponse<MovieListItem>> {
+  const res = await safeRetry(() =>
+    vsmovGet<APIListResponse<MovieListItem>>('/danh-sach/4k', {
+      params: { page },
+    }),
+  );
+  const items = tagSource(
+    extractItems(res).map(normalizeVsmov4KItem),
+    'vsmov',
+  );
+  return {
+    status: true,
+    items,
+    pagination: res?.pagination,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Latest movies — merge phimapi + vsmov + ophim, dedupe               */
 /* ------------------------------------------------------------------ */
 

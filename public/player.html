@@ -9,61 +9,137 @@
   html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   #player { width: 100%; height: 100%; }
 
-  /* ── Cursor + hover-to-reveal fix ────────────────────────────────
-     Artplayer hides the OS cursor and the bottom control bar together
-     under one internal "idle" state, and — inside an iframe — that
-     state was flipping on click instead of tracking real mouse
-     hover/movement, so the cursor vanished the moment you clicked
-     and the bar only reappeared on another click. Two explicit,
-     always-on overrides instead of Artplayer's internal state:
-     1. Cursor is never hidden by the player, full stop.
-     2. Plain CSS :hover reveals the bottom bar directly — no JS
-        click-state involved, so hovering (not clicking) is what
-        shows/hides it, like every other video site. */
-  .art-video-player,
-  .art-video-player .art-video,
-  .art-video-player video {
-    cursor: auto !important;
+  /* =================================================================
+     MODERN PLAYER THEME
+     A restyle layered on top of Artplayer 5.4.0. Nothing here touches
+     interaction/pointer-events on the video or the control bar — the
+     bar uses Artplayer's own native show/hide (no CSS hover-gate), so
+     clicking the video, the settings gear, and every control keeps
+     working exactly like stock Artplayer. This block only changes how
+     things LOOK: colors, spacing, rounded progress bar, glassy panels.
+     ================================================================= */
+  :root {
+    --kgp-accent: #FECF59;
+    --kgp-accent-strong: #ffdd7a;
   }
+
+  /* Softer, taller gradient scrim behind the bottom bar. */
   .art-video-player .art-bottom {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+    padding: 40px 14px 10px !important;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.85) 0%,
+      rgba(0, 0, 0, 0.55) 45%,
+      rgba(0, 0, 0, 0) 100%
+    ) !important;
   }
-  .art-video-player:hover .art-bottom,
-  .art-video-player.art-hover .art-bottom,
-  .art-video-player.art-control-show .art-bottom {
-    opacity: 1 !important;
-    pointer-events: auto !important;
+
+  /* Progress bar — thicker, rounded, accent-colored. */
+  .art-video-player .art-progress { height: 22px !important; }
+  .art-video-player .art-progress .art-control-progress-inner {
+    height: 5px !important;
+    border-radius: 999px;
+    transition: height 0.15s ease;
+  }
+  .art-video-player .art-progress:hover .art-control-progress-inner {
+    height: 8px !important;
+  }
+  .art-video-player .art-progress .art-progress-loaded {
+    background: rgba(255, 255, 255, 0.28) !important;
+    border-radius: 999px;
+  }
+  .art-video-player .art-progress .art-progress-played {
+    background: linear-gradient(90deg, var(--kgp-accent), var(--kgp-accent-strong)) !important;
+    border-radius: 999px;
+  }
+  .art-video-player .art-progress .art-progress-highlight { border-radius: 999px; }
+  .art-video-player .art-progress .art-progress-indicator {
+    width: 15px !important;
+    height: 15px !important;
+    margin-left: -7px !important;
+    top: -5px !important;
+    background: var(--kgp-accent) !important;
+    box-shadow: 0 0 0 4px rgba(254, 207, 89, 0.25), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+    transition: transform 0.15s ease;
+  }
+  .art-video-player .art-progress:hover .art-progress-indicator { transform: scale(1.15); }
+
+  /* Control buttons — subtle hover chip + accent glow. */
+  .art-video-player .art-control {
+    transition: color 0.15s ease, transform 0.12s ease;
+  }
+  .art-video-player .art-controls .art-control:hover {
+    color: var(--kgp-accent) !important;
+    transform: translateY(-1px);
+  }
+  .art-video-player .art-control svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+
+  /* Volume slider + time text. */
+  .art-video-player .art-control-volume .art-volume-panel { border-radius: 999px; }
+  .art-video-player .art-control-volume .art-volume-inner { background: var(--kgp-accent) !important; }
+  .art-video-player .art-control-time {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Big center state icon (play/pause flash) — glassy circle. */
+  .art-video-player .art-state {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border-radius: 999px !important;
+    padding: 18px !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* Loading spinner accent. */
+  .art-video-player .art-loading svg circle { stroke: var(--kgp-accent) !important; }
+
+  /* Settings / info panels — dark glass, rounded, accent selection. */
+  .art-video-player .art-settings,
+  .art-video-player .art-info {
+    background: rgba(20, 22, 30, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55) !important;
+    overflow: hidden;
+  }
+  .art-video-player .art-setting-item:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+  }
+  .art-video-player .art-setting-item.art-current,
+  .art-video-player .art-setting-item[data-value].art-current {
+    color: var(--kgp-accent) !important;
+  }
+  .art-video-player .art-selector-value { color: var(--kgp-accent) !important; }
+
+  /* Tooltip pill. */
+  .art-video-player .art-notice-inner,
+  .art-video-player [class*="art-tooltip"] {
+    border-radius: 8px !important;
+  }
+
+  /* Contextmenu — hide the default Artplayer credit line, keep it clean. */
+  .art-video-player .art-contextmenus {
+    background: rgba(20, 22, 30, 0.95) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
 
   /* ── Mobile control-bar fix ──────────────────────────────────────
-     Verified against Artplayer 5.4.0's actual source (not guessed):
-     controls never get a `data-name` attribute — that selector never
-     matched anything. And `lock` isn't a bottom-bar control at all;
-     it's a separate `.art-layer-lock` overlay, only auto-added when
-     Artplayer's own UA sniffing thinks it's mobile — so it's disabled
-     properly below via `lock: false` in the player config instead of
-     (ineffectively) hiding it here. `aspectRatio` was never in the
-     bottom bar either (it only lives in the settings/⚙ panel).
-
-     What's ACTUALLY in the bottom bar on mobile (real classes, e.g.
-     `.art-control-playAndPause`): rewind, play/pause, forward, volume,
-     time text, next-episode, subtitle, setting, pip, fullscreen — too
-     wide for a phone screen, pushing fullscreen off to the right.
-
-     Fix: play/pause + rewind/forward now live in a big overlay on top
-     of the video itself (#kgp-center-controls below), so their bottom-bar
-     copies are hidden on mobile — freeing most of the row's width so
-     fullscreen fits without scrolling. The custom "next episode" button
-     is also dropped on mobile (users already have Danh sách tập below
-     the player for that — PiP stays, it's genuinely useful on phones
-     and was asked to be kept). */
+     Verified against Artplayer 5.4.0's actual source: the bottom bar on
+     a phone (rewind, play/pause, forward, volume, time, setting, pip,
+     fullscreen) is too wide, pushing fullscreen off the right edge.
+     Fix: play/pause + rewind/forward move to a big center overlay on the
+     video (#kgp-center-controls below), so their bottom-bar copies are
+     hidden on mobile — freeing the row so fullscreen fits. */
   @media (max-width: 480px) {
+    .art-video-player .art-bottom { padding: 30px 8px 8px !important; }
     .art-bottom .art-control-fast-rewind,
     .art-bottom .art-control-fast-forward,
-    .art-bottom .art-control-playAndPause,
-    .art-bottom .art-control-kgp-next-episode {
+    .art-bottom .art-control-playAndPause {
       display: none !important;
     }
     .art-controls,
@@ -85,25 +161,19 @@
     .art-controls::-webkit-scrollbar {
       display: none !important;
     }
-
-    /* Artplayer's own big center play/pause "state" icon
-       (`.art-mask .art-state`) would otherwise sit right behind our
-       custom overlay buttons and double up visually — it's replaced
-       by #kgp-center-controls, so hide it on mobile only. */
+    /* Artplayer's own big center "state" icon would double up behind our
+       overlay buttons — hide it on mobile only. */
     .art-mask .art-state {
       display: none !important;
     }
   }
 
   /* ── Center overlay controls (play/pause + ±10s) ─────────────────
-     Mobile-only, YouTube-style: big, thumb-friendly buttons sitting
-     directly on the video instead of squeezed into the bottom icon
-     row. Desktop keeps the bottom-bar buttons (plenty of room there),
-     so this overlay is hidden by default and only shown under the
-     max-width:480px query. */
-  #kgp-center-controls {
-    display: none;
-  }
+     Mobile-only, YouTube-style big thumb-friendly buttons on the video.
+     Hidden by default; shown only under the max-width:480px query and
+     only while the controls are visible (.art-control-show/.art-hover),
+     fading out with them via Artplayer's own auto-hide timer. */
+  #kgp-center-controls { display: none; }
   @media (max-width: 480px) {
     #kgp-center-controls {
       display: flex;
@@ -112,11 +182,6 @@
       gap: 36px;
       width: 100%;
       pointer-events: none;
-      /* Hidden by default, same as Artplayer's own bottom bar
-         (`.art-bottom` starts at opacity:0) — only shown while
-         `.art-control-show` / `.art-hover` is present on the player
-         root, and faded out again after Artplayer's own auto-hide
-         timer (CONTROL_HIDE_TIME) removes those classes. */
       opacity: 0;
       transition: opacity var(--art-transition-duration, .2s) ease;
     }
@@ -124,12 +189,7 @@
     .art-video-player.art-hover #kgp-center-controls {
       opacity: 1;
     }
-    /* Buttons themselves must stop accepting taps while faded out —
-       otherwise they'd still be clickable (just invisible) since
-       `pointer-events` on a child isn't blocked by a `none` parent. */
-    #kgp-center-controls button {
-      pointer-events: none;
-    }
+    #kgp-center-controls button { pointer-events: none; }
     .art-video-player.art-control-show #kgp-center-controls button,
     .art-video-player.art-hover #kgp-center-controls button {
       pointer-events: auto;
@@ -143,36 +203,22 @@
       border-radius: 999px;
       color: #fff;
       padding: 0;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
-    #kgp-center-controls .kgp-seek-btn {
-      width: 44px;
-      height: 44px;
-    }
-    #kgp-center-controls .kgp-seek-btn svg {
-      width: 24px;
-      height: 24px;
-    }
+    #kgp-center-controls .kgp-seek-btn { width: 44px; height: 44px; }
+    #kgp-center-controls .kgp-seek-btn svg { width: 24px; height: 24px; }
     #kgp-center-controls .kgp-play-btn {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
+      background: var(--kgp-accent);
+      color: #17140a;
     }
-    #kgp-center-controls .kgp-play-btn svg {
-      width: 30px;
-      height: 30px;
-    }
+    #kgp-center-controls .kgp-play-btn svg { width: 32px; height: 32px; }
   }
 
-  /* ── "Bật tiếng" (unmute) pill ────────────────────────────────────
-     Shown ONLY when the browser blocked sound-first autoplay and we
-     fell back to muted autoplay (iOS Safari in particular). Once shown
-     it STAYS visible until the user taps it — it never fades out with
-     the controls. It just tracks the control bar vertically: when the
-     bar slides down out of view the pill slides DOWN to the bottom
-     edge (bottom: 8px), and rises back above the bar (bottom: 52px)
-     when the controls show again. */
-  #kgp-unmute {
-    display: none;
-  }
+  /* ── "Bật tiếng" (unmute) pill ──────────────────────────────────── */
+  #kgp-unmute { display: none; }
   #kgp-unmute.show {
     display: flex;
     align-items: center;
@@ -184,7 +230,7 @@
   }
   .art-video-player.art-control-show .art-layer-kgp-unmute,
   .art-video-player.art-hover .art-layer-kgp-unmute {
-    bottom: 52px;
+    bottom: 60px;
   }
   #kgp-unmute .kgp-unmute-btn {
     display: inline-flex;
@@ -193,173 +239,17 @@
     padding: 10px 18px;
     border: none;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
+    background: var(--kgp-accent);
+    color: #17140a;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1;
     cursor: pointer;
     pointer-events: auto;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 16px rgba(254, 207, 89, 0.4);
   }
-  #kgp-unmute .kgp-unmute-btn:hover {
-    background: rgba(0, 0, 0, 0.8);
-  }
-  #kgp-unmute .kgp-unmute-btn svg {
-    flex-shrink: 0;
-  }
-
-  /* ── "Phụ đề" (CC) popup — cloned from the reference screenshots ───
-     A white rounded card: Bật / Song ngữ / Tắt segmented control up top,
-     two side-by-side language lists below, and a gear icon that swaps
-     the whole panel for the "Tuỳ chỉnh" text-style editor. Positioned
-     like a real subtitle-settings popover, anchored above the CC button. */
-  .kgp-cc-popup {
-    display: none;
-    position: absolute;
-    right: 16px;
-    bottom: 64px;
-    width: 300px;
-    max-width: calc(100vw - 24px);
-    background: #fff;
-    color: #17171a;
-    border-radius: 14px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-    overflow: hidden;
-    font-family: Arial, Helvetica, sans-serif;
-    z-index: 40;
-  }
-  .kgp-cc-popup.show { display: block; }
-  .kgp-cc-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px 4px;
-  }
-  .kgp-cc-head strong { font-size: 14px; font-weight: 700; }
-  .kgp-cc-iconbtn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 999px;
-    border: none;
-    background: transparent;
-    color: #444;
-    cursor: pointer;
-  }
-  .kgp-cc-iconbtn:hover { background: #f0f0f0; }
-  .kgp-cc-segment {
-    display: flex;
-    gap: 4px;
-    margin: 8px 14px 12px;
-    background: #f1f1f3;
-    border-radius: 999px;
-    padding: 3px;
-  }
-  .kgp-cc-segment button {
-    flex: 1;
-    border: none;
-    background: transparent;
-    border-radius: 999px;
-    padding: 6px 0;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #555;
-    cursor: pointer;
-  }
-  .kgp-cc-segment button.active { background: #17171a; color: #fff; }
-  .kgp-cc-cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 8px;
-    padding: 0 14px 12px;
-  }
-  .kgp-cc-cols.single { grid-template-columns: 1fr; }
-  .kgp-cc-col-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: #17171a;
-    padding: 6px 6px;
-    border-bottom: 1px solid #ececec;
-    margin-bottom: 2px;
-  }
-  .kgp-cc-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 6px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #333;
-    cursor: pointer;
-  }
-  .kgp-cc-row:hover { background: #f5f5f5; }
-  .kgp-cc-row.selected { background: #eef6ff; font-weight: 700; color: #0f6fde; }
-  .kgp-cc-row .kgp-check { opacity: 0; font-size: 11px; }
-  .kgp-cc-row.selected .kgp-check { opacity: 1; }
-  .kgp-cc-note {
-    padding: 0 14px 14px;
-    font-size: 11.5px;
-    color: #8a8a8a;
-    line-height: 1.5;
-  }
-
-  /* ── "Tuỳ chỉnh" (subtitle style editor) sub-panel ── */
-  .kgp-cc-custom { display: none; padding: 6px 0 10px; }
-  .kgp-cc-custom.show { display: block; }
-  .kgp-cc-custom-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px 4px;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .kgp-cc-custom-head button {
-    border: none;
-    background: transparent;
-    color: #444;
-    cursor: pointer;
-    display: inline-flex;
-  }
-  .kgp-cc-group-label {
-    padding: 10px 14px 4px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #9a9a9a;
-    text-transform: none;
-  }
-  .kgp-cc-opt {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 14px;
-    font-size: 13px;
-    color: #333;
-  }
-  .kgp-cc-opt-val {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #666;
-    font-size: 12.5px;
-  }
-  .kgp-cc-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid #ccc;
-    display: inline-block;
-  }
-  .kgp-cc-scroll {
-    max-height: 340px;
-    overflow-y: auto;
-  }
+  #kgp-unmute .kgp-unmute-btn:hover { background: var(--kgp-accent-strong); }
+  #kgp-unmute .kgp-unmute-btn svg { flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -395,9 +285,6 @@
     setting: true,
     pip: true,
     flip: false,
-    // Lock button removed per request — was mobile-only anyway (see
-    // CSS note above) and this fully disables the plugin rather than
-    // just hiding it, so no leftover DOM/behavior.
     lock: false,
     fastForward: true,
     playbackRate: true,
@@ -423,6 +310,33 @@
         Default: 'Mặc định',
       },
     },
+    // ── Modern icon set — overrides Artplayer 5.4.0's default control
+    //    glyphs with cleaner, rounded Material-style SVGs (play/pause,
+    //    volume, settings gear, PiP, fullscreen enter/exit, loading,
+    //    and the big center state icon). currentColor lets the accent
+    //    hover theming from the CSS keep working. ──
+    icons: {
+      play:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.68L8.54 5.98A1 1 0 0 0 7 6.82Z"/></svg>',
+      pause:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M8 5a1.5 1.5 0 0 0-1.5 1.5v11a1.5 1.5 0 0 0 3 0v-11A1.5 1.5 0 0 0 8 5Zm8 0a1.5 1.5 0 0 0-1.5 1.5v11a1.5 1.5 0 0 0 3 0v-11A1.5 1.5 0 0 0 16 5Z"/></svg>',
+      volume:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>',
+      volumeClose:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>',
+      setting:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>',
+      pip:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 11h-6v5h6v-5zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>',
+      fullscreenOn:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
+      fullscreenOff:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
+      loading:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="52" height="52"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="90 60"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite"/></circle></svg>',
+      state:
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.68L8.54 5.98A1 1 0 0 0 7 6.82Z"/></svg>',
+    },
     layers: [
       {
         name: 'kgp-logo',
@@ -444,20 +358,19 @@
       },
       {
         // Mobile-only overlay: play/pause + ±10s seek, centered on the
-        // video itself. See the #kgp-center-controls CSS above for why
-        // — this is what lets the bottom icon row shrink enough for
-        // fullscreen to stop being pushed off-screen on narrow phones.
+        // video. The wrapper is pointer-events:none so it never blocks
+        // clicks on the video underneath; only the buttons re-enable them.
         name: 'kgp-center-controls',
         html:
           '<div id="kgp-center-controls">' +
             '<button type="button" class="kgp-seek-btn" aria-label="Tua lùi 10 giây" onclick="window.__kgpRewind(event)">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M4 18A12 12 0 1 0 16 6h-4V1L6 7l6 6V8h4A10 10 0 1 1 6 18Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z" transform="scale(-1,1) translate(-24,0)"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
             '</button>' +
             '<button type="button" id="kgp-center-play-btn" class="kgp-play-btn" aria-label="Phát / Dừng" onclick="window.__kgpTogglePlay(event)">' +
-              '<svg id="kgp-center-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>' +
+              '<svg id="kgp-center-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.68L8.54 5.98A1 1 0 0 0 7 6.82Z"/></svg>' +
             '</button>' +
             '<button type="button" class="kgp-seek-btn" aria-label="Tua tới 10 giây" onclick="window.__kgpForward(event)">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path fill="currentColor" d="M26 18A10 10 0 1 1 16 8h4v5l6-6-6-6v5h-4a12 12 0 1 0 12 12Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 1-8.94 10.06 1 1 0 1 1 1.99-.23A7 7 0 1 0 12.5 5v2.5l-4-3.5 4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
             '</button>' +
           '</div>',
         style: {
@@ -474,10 +387,9 @@
         },
       },
       {
-        // Unmute pill — bottom-left. Only shown while the muted-autoplay
-        // fallback is active AND the player controls are visible, so it
-        // follows the control bar: it fades out together with the controls
-        // and returns with them until the user has unmuted (then gone).
+        // Unmute pill — bottom-left, only shown while the muted-autoplay
+        // fallback is active. Wrapper is pointer-events:none; only the
+        // button re-enables clicks so it never blocks the video.
         name: 'kgp-unmute',
         html:
           '<div id="kgp-unmute">' +
@@ -493,60 +405,13 @@
           pointerEvents: 'none',
         },
       },
-      {
-        // "Phụ đề" (CC) popup — see .kgp-cc-popup CSS above. Two views
-        // inside the same layer: the main Bật/Song ngữ/Tắt + language
-        // list (.kgp-cc-main) and the "Tuỳ chỉnh" style editor
-        // (.kgp-cc-custom), toggled via kgpCcShowCustom()/kgpCcShowMain().
-        name: 'kgp-cc-popup',
-        html:
-          '<div class="kgp-cc-popup" id="kgp-cc-popup">' +
-            '<div class="kgp-cc-main" id="kgp-cc-main">' +
-              '<div class="kgp-cc-head">' +
-                '<strong>Phụ đề</strong>' +
-                '<button type="button" class="kgp-cc-iconbtn" title="Tuỳ chỉnh" onclick="window.__kgpCcShowCustom(event)">' +
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94a7.14 7.14 0 0 0 .06-.94 7.14 7.14 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94L14.4 2.8a.49.49 0 0 0-.49-.42h-3.84a.49.49 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.68 8.86a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.05.24.25.42.49.42h3.84c.24 0 .44-.18.49-.42l.36-2.54c.58-.23 1.13-.54 1.63-.94l2.39.96c.24.1.5 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>' +
-                '</button>' +
-              '</div>' +
-              '<div class="kgp-cc-segment" id="kgp-cc-segment">' +
-                '<button type="button" data-mode="on" onclick="window.__kgpCcSetMode(event,\'on\')">Bật</button>' +
-                '<button type="button" data-mode="dual" class="active" onclick="window.__kgpCcSetMode(event,\'dual\')">Song ngữ</button>' +
-                '<button type="button" data-mode="off" onclick="window.__kgpCcSetMode(event,\'off\')">Tắt</button>' +
-              '</div>' +
-              '<div class="kgp-cc-cols" id="kgp-cc-cols"></div>' +
-              '<p class="kgp-cc-note">Phụ đề do nguồn phát cung cấp — ngôn ngữ hiển thị tuỳ theo bản phát hành của từng phim.</p>' +
-            '</div>' +
-            '<div class="kgp-cc-custom kgp-cc-scroll" id="kgp-cc-custom">' +
-              '<div class="kgp-cc-custom-head">' +
-                '<button type="button" onclick="window.__kgpCcShowMain(event)" aria-label="Quay lại">' +
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>' +
-                '</button>' +
-                '<span>Tuỳ chỉnh</span>' +
-              '</div>' +
-              '<div class="kgp-cc-group-label">Phụ đề chính</div>' +
-              '<div class="kgp-cc-opt"><span>Màu chữ</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot"></i> Trắng ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Cỡ chữ</span><span class="kgp-cc-opt-val">14pt ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Độ trong</span><span class="kgp-cc-opt-val">100% ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Font chữ</span><span class="kgp-cc-opt-val">Arial ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Viền chữ</span><span class="kgp-cc-opt-val">Không viền ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Màu nền</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot" style="background:#000"></i> Đen ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Độ trong nền</span><span class="kgp-cc-opt-val">0% ›</span></div>' +
-              '<div class="kgp-cc-group-label">Song ngữ</div>' +
-              '<div class="kgp-cc-opt"><span>Màu chữ</span><span class="kgp-cc-opt-val"><i class="kgp-cc-dot"></i> Trắng ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Cỡ chữ</span><span class="kgp-cc-opt-val">70% ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Độ trong</span><span class="kgp-cc-opt-val">100% ›</span></div>' +
-              '<div class="kgp-cc-opt"><span>Font chữ</span><span class="kgp-cc-opt-val">Arial ›</span></div>' +
-            '</div>' +
-          '</div>',
-        style: { pointerEvents: 'auto' },
-      },
     ],
     controls: [
       {
         position: 'left',
         name: 'fast-rewind',
         index: 10,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><path fill="currentColor" d="M4 18A12 12 0 1 0 16 6h-4V1L6 7l6 6V8h4A10 10 0 1 1 6 18Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z" transform="scale(-1,1) translate(-24,0)"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>',
         tooltip: '10 giây trước',
         click: function () { art.seek = art.currentTime - 10; },
       },
@@ -554,7 +419,7 @@
         position: 'left',
         name: 'fast-forward',
         index: 11,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><path fill="currentColor" d="M26 18A10 10 0 1 1 16 8h4v5l6-6-6-6v5h-4a12 12 0 1 0 12 12Z"/><path fill="currentColor" d="M19.63 22.13a2.84 2.84 0 0 1-1.28-.27 2.44 2.44 0 0 1-.89-.77 3.6 3.6 0 0 1-.52-1.25 7.7 7.7 0 0 1-.17-1.68 8 8 0 0 1 .17-1.68 3.7 3.7 0 0 1 .52-1.25 2.44 2.44 0 0 1 .89-.77 2.84 2.84 0 0 1 1.28-.27 2.44 2.44 0 0 1 2.16 1 5.23 5.23 0 0 1 .7 2.93 5.23 5.23 0 0 1-.7 2.93 2.44 2.44 0 0 1-2.16 1.08m0-1.22a1.07 1.07 0 0 0 1-.55 3.4 3.4 0 0 0 .37-1.51v-1.38a3.3 3.3 0 0 0-.29-1.5 1.23 1.23 0 0 0-2.06 0 3.3 3.3 0 0 0-.29 1.5v1.38a3.4 3.4 0 0 0 .29 1.51 1.06 1.06 0 0 0 .98.55m-9 1.09v-1.18h2v-5.19l-1.86 1-.55-1.06 2.32-1.3H14v6.5h1.78V22z"/></svg>',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 3a9 9 0 1 1-8.94 10.06 1 1 0 1 1 1.99-.23A7 7 0 1 0 12.5 5v2.5l-4-3.5 4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>',
         tooltip: '10 giây sau',
         click: function () { art.seek = art.currentTime + 10; },
       },
@@ -562,21 +427,9 @@
         position: 'right',
         name: 'kgp-next-episode',
         index: 10,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="currentColor" d="M6 18 14.5 12 6 6v12ZM16 6v12h2V6h-2Z"/></svg>',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l6.9-4.39V17a1 1 0 0 0 2 0V7a1 1 0 0 0-2 0v3.37L8.54 5.98A1 1 0 0 0 7 6.82Z"/></svg>',
         tooltip: 'Tập tiếp theo',
         click: function () { postToParent({ action: 'nextEpisode' }); },
-      },
-      {
-        // "Phụ đề" (CC) — toggles the .kgp-cc-popup layer built above.
-        position: 'right',
-        name: 'kgp-cc',
-        index: 16,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-9.5 10.5H9v-1H7.5v1H6v-5h1.5v1H9v-1h1.5v5Zm7 0h-1.5v-1H14.5v1H13v-5h1.5v1H16v-1h1.5v5Z"/></svg>',
-        tooltip: 'Phụ đề',
-        click: function (_component, event) {
-          if (event) event.stopPropagation();
-          window.__kgpCcToggle();
-        },
       },
     ],
     customType: isHls
@@ -598,7 +451,6 @@
               function tryAddQuality() {
                 if (qualityAdded || !hlsReady || !artReady) return;
                 var levels = hls.levels || [];
-                // Only show quality picker when there are 2+ levels to switch between
                 if (levels.length <= 1) return;
                 qualityAdded = true;
 
@@ -643,26 +495,7 @@
                 }]);
               }
 
-              hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                hlsReady = true;
-                tryAddQuality();
-                tryAddAudioTrack();
-              });
-              hls.on(Hls.Events.LEVEL_LOADED, function () {
-                hlsReady = true;
-                tryAddQuality();
-              });
-              art.on('ready', function () {
-                artReady = true;
-                tryAddQuality();
-                tryAddAudioTrack();
-              });
-
               // ── Language (audio track) selector — "song ngữ" streams ──
-              // Only relevant for m3u8 files that embed more than one
-              // audio track (e.g. Vietsub + Thuyết Minh muxed together).
-              // Single-audio streams never show this — same guard style
-              // as the quality selector above.
               var audioTrackAdded = false;
 
               function audioTrackLabel(track, index) {
@@ -677,8 +510,6 @@
               function tryAddAudioTrack() {
                 if (audioTrackAdded || !hlsReady || !artReady) return;
                 var tracks = hls.audioTracks || [];
-                // Only show the picker when the stream actually has 2+
-                // muxed audio tracks to choose between.
                 if (tracks.length <= 1) return;
                 audioTrackAdded = true;
 
@@ -699,6 +530,21 @@
                   },
                 }]);
               }
+
+              hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                hlsReady = true;
+                tryAddQuality();
+                tryAddAudioTrack();
+              });
+              hls.on(Hls.Events.LEVEL_LOADED, function () {
+                hlsReady = true;
+                tryAddQuality();
+              });
+              art.on('ready', function () {
+                artReady = true;
+                tryAddQuality();
+                tryAddAudioTrack();
+              });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
               video.src = url;
             }
@@ -708,56 +554,18 @@
   });
 
   // ===================================================================
-  // CLICK-ANYWHERE-ON-THE-VIDEO TO TOGGLE PLAY/PAUSE
-  //
-  // Artplayer is supposed to do this itself out of the box (no config
-  // option for it — it's just built-in core behavior), but it wasn't
-  // firing here, so this adds it explicitly and takes it out of guesswork.
-  // Bound on the whole player root, but bails out on any click that lands
-  // on a real control (bottom bar, our custom layers/popups, buttons,
-  // links) so those keep working exactly as before — only clicks on the
-  // bare video surface itself trigger the toggle.
+  // NOTE on click-to-pause: Artplayer binds this natively on the
+  // <video> element (single click toggles play/pause on desktop). We do
+  // NOT add a second click listener — a previous version did, and every
+  // click bubbled to both handlers, toggling twice and cancelling out,
+  // which is exactly why the player "did nothing" on click. Left to
+  // Artplayer's own single-click handler with nothing fighting it.
   // ===================================================================
-  var $playerRootEl = art.template.$player;
-  if ($playerRootEl) {
-    $playerRootEl.addEventListener('click', function (e) {
-      var target = e.target;
-      var hitsControl =
-        target.closest &&
-        target.closest(
-          [
-            '.art-controls',
-            '.art-bottom',
-            '.art-settings',
-            '.art-contextmenu',
-            '.art-progress',
-            '[class*="art-layer-"]',
-            'button',
-            'a',
-          ].join(',')
-        );
-      if (hitsControl) return;
-      art.toggle();
-    });
-  }
 
   // ===================================================================
-  // iOS FULLSCREEN FIX
-  //
-  // iOS Safari only has PARTIAL Fullscreen API support: it only honours
-  // fullscreen requests on <video> elements. When Artplayer fullscreens
-  // its player container (a <div> wrapping the <video>), iOS ignores the
-  // div and hands the video to the NATIVE fullscreen player instead,
-  // which renders no DOM at all — so the logo layer (and our center
-  // controls / unmute pill) vanish on iOS, while Android and desktop
-  // DOM-fullscreen the container and keep the layers visible.
-  //
-  // Fix: on iOS we never enter native fullscreen. The fullscreen button
-  // (and double-tap) is redirected to ask the PARENT page to
-  // "fake-fullscreen" the whole player via a fixed full-viewport overlay
-  // (the parent already does exactly this for its cinema mode). Inside
-  // that overlay the iframe scales up to fill the screen, so the
-  // in-player logo layer stays visible — matching Android / desktop.
+  // iOS FULLSCREEN FIX — iOS Safari only fullscreens <video>, not the
+  // wrapping <div>, hiding all DOM overlays. On iOS we redirect the
+  // fullscreen button to the parent's "fake fullscreen" (cinema) overlay.
   // ===================================================================
   var isIOS =
     /(iPad|iPhone|iPod)/.test(navigator.userAgent) ||
@@ -769,8 +577,6 @@
     var next = !!state;
     if (kgpFakeFullscreen === next) return;
     kgpFakeFullscreen = next;
-    // Built-in fullscreen control flips its icon/tooltip on this event,
-    // and autoOrientation safely no-ops on iOS (no orientation lock API).
     art.emit('fullscreen', kgpFakeFullscreen);
   }
 
@@ -780,13 +586,6 @@
   }
 
   if (isIOS) {
-    // Artplayer fullscreens `$player` via Element.requestFullscreen
-    // (standard path) or the <video>'s webkitEnterFullscreen (old-Safari
-    // fallback path). Patch BOTH entry points so every native-fullscreen
-    // attempt is redirected to our fake fullscreen flow instead. A
-    // resolved promise is returned so Artplayer's internal promise
-    // machinery (Mt.request) never hangs waiting for a fullscreenchange
-    // that will never fire.
     var kgpRedirectFullscreen = function () {
       kgpToggleFakeFullscreen();
       return Promise.resolve();
@@ -805,11 +604,9 @@
   }
 
   // ===================================================================
-  // Center overlay controls (mobile only — see CSS at the top for why).
-  // Defined as plain window functions so the inline onclick= handlers in
-  // the layer's HTML string can reach them regardless of Artplayer's
-  // internal event-binding, and stopPropagation so tapping a button
-  // doesn't also trigger any handler on the elements underneath it.
+  // Center overlay controls (mobile only). Plain window functions so the
+  // inline onclick handlers reach them; stopPropagation so a button tap
+  // doesn't also toggle the video underneath.
   // ===================================================================
   window.__kgpRewind = function (e) {
     if (e) e.stopPropagation();
@@ -821,9 +618,7 @@
   };
   window.__kgpTogglePlay = function (e) {
     if (e) e.stopPropagation();
-    // Use the raw video element state. `art.paused` does NOT exist in
-    // Artplayer 5.4.0 (only `art.playing` does) — it's undefined, which
-    // would make this always call pause() and break play/resume.
+    // art.paused does NOT exist in Artplayer 5.4.0 — use the raw video.
     if (art.video.paused) {
       art.play();
     } else {
@@ -831,17 +626,9 @@
     }
   };
 
-  var KGP_PLAY_ICON = '<path fill="currentColor" d="M8 5v14l11-7z"/>';
-  var KGP_PAUSE_ICON = '<path fill="currentColor" d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+  var KGP_PLAY_ICON = '<path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.68L8.54 5.98A1 1 0 0 0 7 6.82Z"/>';
+  var KGP_PAUSE_ICON = '<path fill="currentColor" d="M8 5a1.5 1.5 0 0 0-1.5 1.5v11a1.5 1.5 0 0 0 3 0v-11A1.5 1.5 0 0 0 8 5Zm8 0a1.5 1.5 0 0 0-1.5 1.5v11a1.5 1.5 0 0 0 3 0v-11A1.5 1.5 0 0 0 16 5Z"/>';
 
-  // Play/pause glyph on the center overlay. IMPORTANT: we deliberately do
-  // NOT sync on 'ready' / loading events, so the glyph is always the PLAY
-  // icon when the page first opens (no flicker between play/pause while
-  // the stream buffers). It only changes when real playback state
-  // changes, following the YouTube convention — the glyph previews the
-  // ACTION the button will perform next:
-  //   - while PLAYING  → show the PAUSE glyph (tap = pause),
-  //   - while PAUSED   → show the PLAY glyph (tap = resume).
   function kgpSyncCenterIcon() {
     var icon = document.getElementById('kgp-center-play-icon');
     if (!icon) return;
@@ -856,27 +643,21 @@
   art.on('video:ended', kgpSyncCenterIcon);
 
   // ===================================================================
-  // BRIDGE: notify the parent window about player events so the
-  // WatchPage can implement auto-next, progress tracking, etc.
+  // BRIDGE: notify the parent window about player events.
   // ===================================================================
-
   function postToParent(payload) {
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(payload, '*');
       }
-    } catch (_) {
-      // Silently ignore if parent is inaccessible
-    }
+    } catch (_) {}
   }
 
-  // Video ended → parent can auto-advance to next episode
   art.on('video:ended', function () {
     postToParent({ event: 'ended' });
-    postToParent('ended'); // string format fallback
+    postToParent('ended');
   });
 
-  // Periodic time updates → parent can track watch progress
   art.on('video:timeupdate', function () {
     postToParent({
       event: 'timeupdate',
@@ -886,36 +667,24 @@
     });
   });
 
-  // Video ready (duration known)
   art.on('ready', function () {
-    postToParent({
-      event: 'ready',
-      duration: art.duration,
-    });
+    postToParent({ event: 'ready', duration: art.duration });
   });
 
-  // Error
   art.on('video:error', function () {
     postToParent({ event: 'error' });
   });
 
   // ===================================================================
-  // INBOUND: accept commands from the parent window (seek, pause, etc.)
+  // INBOUND: accept commands from the parent window.
   // ===================================================================
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;
     if (e.data.action === 'seek' && typeof e.data.time === 'number') {
       art.seek = e.data.time;
     }
-    if (e.data.action === 'pause') {
-      art.pause();
-    }
-    if (e.data.action === 'play') {
-      art.play();
-    }
-    // Parent confirms fake-fullscreen state (it may exit via Esc, the
-    // exit pill, the backdrop, or its own cinema-mode toggle) — keep the
-    // fullscreen button icon in sync.
+    if (e.data.action === 'pause') art.pause();
+    if (e.data.action === 'play') art.play();
     if (e.data.action === 'fullscreenState' && typeof e.data.state === 'boolean') {
       kgpSetFakeFullscreen(e.data.state);
     }
@@ -924,126 +693,7 @@
   window.art = art;
 
   // ===================================================================
-  // "Phụ đề" (CC) popup logic
-  //
-  // IMPORTANT — honest limitation: this app's movie sources don't
-  // provide separate subtitle-track files (no subtitle URL field on the
-  // episode data), so there's nothing real to switch between yet. This
-  // wires up the full reference UI (Bật/Song ngữ/Tắt, language columns,
-  // style customization) so it's ready the moment a source with real
-  // subtitle tracks is added — for now the "Tắt" state is accurate,
-  // since there's no subtitle content to actually show.
-  // ===================================================================
-  var KGP_CC_LANGS = [
-    { id: 'vi', label: 'Tiếng Việt' },
-    { id: 'vi-sub', label: 'Phụ đề' },
-    { id: 'en', label: 'English' },
-    { id: 'ko', label: '한국어' },
-    { id: 'zh', label: '中文' },
-  ];
-  var kgpCcMode = 'off'; // 'on' | 'dual' | 'off' — matches actual availability
-  var kgpCcPrimary = null;
-  var kgpCcSecondary = null;
-
-  function kgpCcRenderCols() {
-    var cols = document.getElementById('kgp-cc-cols');
-    if (!cols) return;
-    if (kgpCcMode === 'off') {
-      cols.className = 'kgp-cc-cols';
-      cols.innerHTML = '';
-      return;
-    }
-    var dual = kgpCcMode === 'dual';
-    cols.className = dual ? 'kgp-cc-cols' : 'kgp-cc-cols single';
-
-    function buildCol(title, selectedId, onPick) {
-      var html = '<div>';
-      html += '<div class="kgp-cc-col-title">' + title + '</div>';
-      KGP_CC_LANGS.forEach(function (l) {
-        var sel = l.id === selectedId;
-        html +=
-          '<div class="kgp-cc-row' + (sel ? ' selected' : '') + '" data-lang="' + l.id + '" data-target="' + (title === 'Tiếng Việt' ? 'p' : 's') + '">' +
-            '<span>' + l.label + '</span><span class="kgp-check">✓</span>' +
-          '</div>';
-      });
-      html += '</div>';
-      return html;
-    }
-
-    cols.innerHTML =
-      buildCol('Tiếng Việt', kgpCcPrimary) + (dual ? buildCol('Tiếng Việt', kgpCcSecondary) : '');
-
-    Array.prototype.forEach.call(cols.querySelectorAll('.kgp-cc-row'), function (row) {
-      row.addEventListener('click', function () {
-        var lang = row.getAttribute('data-lang');
-        var target = row.getAttribute('data-target');
-        if (target === 's') {
-          kgpCcSecondary = lang;
-        } else {
-          kgpCcPrimary = lang;
-        }
-        kgpCcRenderCols();
-      });
-    });
-  }
-
-  window.__kgpCcSetMode = function (e, mode) {
-    if (e) e.stopPropagation();
-    kgpCcMode = mode;
-    var seg = document.getElementById('kgp-cc-segment');
-    if (seg) {
-      Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
-        b.classList.toggle('active', b.getAttribute('data-mode') === mode);
-      });
-    }
-    if (mode !== 'off' && !kgpCcPrimary) kgpCcPrimary = 'vi';
-    if (mode === 'dual' && !kgpCcSecondary) kgpCcSecondary = 'en';
-    kgpCcRenderCols();
-  };
-
-  window.__kgpCcShowCustom = function (e) {
-    if (e) e.stopPropagation();
-    var main = document.getElementById('kgp-cc-main');
-    var custom = document.getElementById('kgp-cc-custom');
-    if (main) main.style.display = 'none';
-    if (custom) custom.classList.add('show');
-  };
-  window.__kgpCcShowMain = function (e) {
-    if (e) e.stopPropagation();
-    var main = document.getElementById('kgp-cc-main');
-    var custom = document.getElementById('kgp-cc-custom');
-    if (custom) custom.classList.remove('show');
-    if (main) main.style.display = '';
-  };
-
-  window.__kgpCcToggle = function () {
-    var popup = document.getElementById('kgp-cc-popup');
-    if (!popup) return;
-    var willShow = !popup.classList.contains('show');
-    popup.classList.toggle('show', willShow);
-    if (willShow) {
-      kgpCcRenderCols();
-    }
-  };
-
-  // Click outside (anywhere else on the player) closes the popup.
-  document.addEventListener('click', function (e) {
-    var popup = document.getElementById('kgp-cc-popup');
-    if (!popup || !popup.classList.contains('show')) return;
-    if (!popup.contains(e.target)) popup.classList.remove('show');
-  });
-
-  // ===================================================================
-  // AUTOPLAY FALLBACK
-  //
-  // iOS Safari blocks sound-first autoplay inside iframes, so a
-  // `muted:false, autoplay:true` player just stays paused there (that's
-  // the bug). Strategy — exactly what the parent app asked for:
-  //   1. Try autoplay WITH sound first (works on Android / desktop).
-  //   2. If the browser rejects it, retry muted (always allowed) so the
-  //      video actually plays everywhere.
-  //   3. When we had to fall back to muted, show the "Bật tiếng" pill.
-  //      Tapping it is a user gesture, which is what unlocks unmuting.
+  // AUTOPLAY FALLBACK — try sound-first, fall back to muted + pill.
   // ===================================================================
   var kgpFallbackDone = false;
 
@@ -1058,17 +708,11 @@
 
   function kgpTryPlay(video) {
     var p = null;
-    try {
-      p = video.play();
-    } catch (_) {
-      p = null;
-    }
+    try { p = video.play(); } catch (_) { p = null; }
     if (p && typeof p.catch === 'function') p.catch(function () {});
     return p;
   }
 
-  // Tapped by the user → that gesture unlocks unmuted playback on iOS.
-  // Defined on window so the layer's inline onclick can reach it.
   window.__kgpUnmute = function (e) {
     if (e) e.stopPropagation();
     try { art.muted = false; } catch (_) {}
@@ -1077,29 +721,17 @@
   };
 
   art.on('ready', function () {
-    // Give Artplayer's own autoplay attempt a moment to settle before
-    // we probe — too early and the stream may simply not be playing yet.
     setTimeout(function () {
       var video = art.video;
       if (!video || kgpFallbackDone) return;
 
       var p = null;
-      try {
-        p = video.play();
-      } catch (_) {
-        p = null;
-      }
+      try { p = video.play(); } catch (_) { p = null; }
 
       if (p && typeof p.then === 'function') {
         p.then(function () {
-          // Autoplay succeeded. If something already muted us (e.g.
-          // Artplayer's own muted fallback), surface the pill anyway.
           if (video.muted) kgpShowUnmute();
         }).catch(function () {
-          // Sound-first autoplay was blocked → retry muted + show pill.
-          // Guard: if the video actually started anyway (e.g. a spurious
-          // rejection on desktop/Android), do NOT mute it — sound
-          // autoplay is the primary behaviour there.
           if (video && !video.paused && !video.ended) return;
           kgpFallbackDone = true;
           try { art.muted = true; } catch (_) {}
@@ -1107,7 +739,6 @@
           kgpShowUnmute();
         });
       } else {
-        // No Promise support (very old browsers) — check state directly.
         setTimeout(function () {
           if (video.paused) {
             kgpFallbackDone = true;
@@ -1122,8 +753,6 @@
     }, 250);
   });
 
-  // If the user later unmutes through the player's own controls, drop
-  // the pill for good — it was a first-time fallback hint only.
   art.on('video:playing', function () {
     if (art.video && !art.video.muted) kgpHideUnmute();
   });

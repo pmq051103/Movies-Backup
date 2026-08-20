@@ -10,7 +10,11 @@ import {
   getMoviesBySlug,
   getMovieCatalogStats,
 } from '@/api';
-import { getMovieDetailFromSource } from '@/api/dualSource';
+import {
+  getMovieDetailFromSource,
+  getMovieDetailDual,
+  getVsmov4KMovies,
+} from '@/api/dualSource';
 import { getTmdbExtras } from '@/api/tmdbService';
 import type {
   MovieListItem,
@@ -137,7 +141,17 @@ export function useHeroMovies(movies: MovieListItem[], limit = 5) {
       const src = (m as HeroSlide)._source ?? 'phimapi';
       return {
         queryKey: [QUERY_KEYS.MOVIE_DETAIL, 'hero', m.slug, src],
-        queryFn: () => getMovieDetailFromSource(m.slug, src),
+        // A single source sometimes returns empty `content` for a slug,
+        // which left some banner slides with no description. Fall back to
+        // the merged multi-source detail when the preferred source has no
+        // content, so every slide gets a description if any source has one.
+        queryFn: async () => {
+          const primary = await getMovieDetailFromSource(m.slug, src);
+          if (primary?.movie?.content) return primary;
+          const merged = await getMovieDetailDual(m.slug, src).catch(() => null);
+          if (merged?.movie?.content) return merged;
+          return primary ?? merged;
+        },
         enabled: !!m.slug,
         staleTime: 10 * 60 * 1000,
       };
@@ -159,6 +173,20 @@ export function useHeroMovies(movies: MovieListItem[], limit = 5) {
       country: detail.country,
       tmdb: detail.tmdb,
     } as HeroSlide;
+  });
+}
+
+/**
+ * vsmov's premium 4K catalog (`/danh-sach/4k`). Separate hook because it
+ * comes from vsmov (flat legacy shape) rather than phimapi, and each item
+ * is normalised with `quality: '4K'` + tagged `_source: 'vsmov'`.
+ */
+export function useVsmov4K(page: number = 1) {
+  return useQuery({
+    queryKey: ['vsmov4k', page],
+    queryFn: () => getVsmov4KMovies(page),
+    select: selectListResponse,
+    staleTime: 10 * 60 * 1000,
   });
 }
 

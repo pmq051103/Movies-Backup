@@ -14,3 +14,5 @@ export { default as UpcomingRow } from './UpcomingRow';
 export { default as PromoBanner } from './PromoBanner';
 export { default as CategoryBanner } from './CategoryBanner';
 export { default as StatsBlock } from './StatsBlock';
+export { default as Premium4KCard } from './Premium4KCard';
+export { default as Phim4KSection } from './Phim4KSection';

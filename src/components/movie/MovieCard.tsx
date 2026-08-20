@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ROUTES, QUERY_KEYS } from '@/constants';
 import { getMoviePoster, onImgError } from '@/utils';
-import { getMovieDetailFromSource, type MovieSource } from '@/api/dualSource';
+import { getMovieDetailFromSource, getMovieDetailDual, type MovieSource } from '@/api/dualSource';
 import { useFavoriteStore } from '@/store';
 import type { MovieListItem } from '@/types';
 
@@ -55,12 +55,31 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
       : `${ROUTES.MOVIE_DETAIL}/${movie.slug}`;
   const watchUrl = `${ROUTES.WATCH}/${movie.slug}${source !== 'phimapi' ? `?src=${source}` : ''}`;
 
-  // Fetch the full detail (description, genres, countries) eagerly so the
-  // hover popup always has description + genres ready (same as Top Phim),
-  // cached by react-query so repeat hovers are instant.
+  // Fetch the full detail (description, genres, countries) for the hover
+  // popup, cached by react-query so repeat hovers are instant.
+  //
+  // IMPORTANT: gated behind `enabled: isHovered`. Fetching eagerly for
+  // every card fired one (and, with the fallback below, up to FOUR)
+  // requests per card the moment a row rendered — a request storm that
+  // starved the homepage's list queries, so their sections came back
+  // empty and hid themselves. The base card badges below already fall
+  // back to the list-item fields, so nothing needs the detail up front.
+  //
+  // Fallback: a single source can map this slug to a missing movie or
+  // return an empty `content` — that's why some cards showed a
+  // description on hover and some didn't. When the preferred source has
+  // no content, fall back to the merged multi-source detail so the
+  // description/genres are filled in from whichever source has them.
   const { data: detailData } = useQuery({
     queryKey: [QUERY_KEYS.MOVIE_DETAIL, 'card', movie.slug, source],
-    queryFn: () => getMovieDetailFromSource(movie.slug, source),
+    queryFn: async () => {
+      const primary = await getMovieDetailFromSource(movie.slug, source);
+      if (primary?.movie?.content) return primary;
+      const merged = await getMovieDetailDual(movie.slug, source).catch(() => null);
+      if (merged?.movie?.content) return merged;
+      return primary ?? merged;
+    },
+    enabled: isHovered,
     staleTime: 10 * 60 * 1000,
   });
 
