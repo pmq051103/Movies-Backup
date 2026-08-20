@@ -231,6 +231,12 @@ export default function WatchPage() {
   // shortcut ('f' key) fullscreens both — otherwise fullscreening just
   // the iframe leaves the logo (a sibling element) behind and hidden.
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  // The cinema-mode backdrop — focused whenever cinema mode turns on or
+  // native fullscreen exits, so the NEXT Escape/click reliably reaches
+  // our own listeners instead of getting swallowed by the (cross-origin)
+  // player iframe. See the fullscreenchange effect below for why this is
+  // needed at all.
+  const cinemaOverlayRef = useRef<HTMLDivElement>(null);
 
   // Track playback progress received from the same-origin player
   // wrapper via postMessage. Updated on every timeupdate event and
@@ -589,6 +595,38 @@ export default function WatchPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToPrev, goToNext, cinemaMode, setCinemaMode]);
 
+  /* ---- Fullscreen ↔ cinema-mode focus handoff ----
+     The video is a cross-origin iframe, so once its player grabs
+     keyboard focus (which most embed players do — that's how THEIR
+     own space/arrow shortcuts work), our `window` keydown listener
+     above stops receiving events entirely; the browser never lets a
+     cross-origin frame's key events bubble into the parent document.
+     That's what caused "Escape does nothing" / "needs two presses":
+     the first Escape exits the browser's native fullscreen (a
+     browser-level behavior, not our JS) while focus is still trapped
+     inside the iframe, so our handler never runs for it. Only once
+     focus happens to land back on the parent page does an Escape
+     actually reach `handleKeyDown` above.
+     Fix: whenever cinema mode turns on, and whenever native fullscreen
+     is exited, explicitly steal focus back onto our own overlay so the
+     very next Escape (or click) is guaranteed to be seen by our code
+     instead of the iframe. */
+  useEffect(() => {
+    if (cinemaMode) {
+      cinemaOverlayRef.current?.focus();
+    }
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        // Just dropped out of native fullscreen — reclaim focus so a
+        // follow-up Escape/click reaches this page, not the iframe.
+        cinemaOverlayRef.current?.focus();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [cinemaMode]);
+
   /* ---- Auto-next: listen for postMessage from the video iframe ----
      The upstream player broadcasts events on video end using several
      possible shapes (`ended`, `video:ended`, {type:'ended'}, ...). We
@@ -751,16 +789,26 @@ export default function WatchPage() {
         createPortal(
           <>
             <motion.div
+              ref={cinemaOverlayRef}
+              tabIndex={-1}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black"
+              className="fixed inset-0 z-40 bg-black outline-none"
               onClick={() => setCinemaMode(false)}
             />
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* `pointer-events-none` here so clicks in the empty
+                letterbox padding around the video (when its 16:9 box
+                doesn't exactly fill the viewport) fall through to the
+                backdrop above and close cinema mode, instead of being
+                silently swallowed by this otherwise-invisible full-
+                viewport flex wrapper. The actual video box below
+                re-enables pointer-events so clicking the video itself
+                still reaches the player normally. */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
               <div
                 ref={playerContainerRef}
-                className="relative"
+                className="relative pointer-events-auto"
                 style={{
                   width: 'min(100vw, calc(100vh * 16 / 9))',
                   height: 'min(100vh, calc(100vw * 9 / 16))',
@@ -777,7 +825,7 @@ export default function WatchPage() {
               <button
                 type="button"
                 onClick={() => setCinemaMode(false)}
-                className="fixed right-3 top-3 z-[60] flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+                className="pointer-events-auto fixed right-3 top-3 z-[60] flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
               >
                 <FaCompress className="h-3.5 w-3.5" />
                 Thoát rạp

@@ -708,6 +708,40 @@
   });
 
   // ===================================================================
+  // CLICK-ANYWHERE-ON-THE-VIDEO TO TOGGLE PLAY/PAUSE
+  //
+  // Artplayer is supposed to do this itself out of the box (no config
+  // option for it — it's just built-in core behavior), but it wasn't
+  // firing here, so this adds it explicitly and takes it out of guesswork.
+  // Bound on the whole player root, but bails out on any click that lands
+  // on a real control (bottom bar, our custom layers/popups, buttons,
+  // links) so those keep working exactly as before — only clicks on the
+  // bare video surface itself trigger the toggle.
+  // ===================================================================
+  var $playerRootEl = art.template.$player;
+  if ($playerRootEl) {
+    $playerRootEl.addEventListener('click', function (e) {
+      var target = e.target;
+      var hitsControl =
+        target.closest &&
+        target.closest(
+          [
+            '.art-controls',
+            '.art-bottom',
+            '.art-settings',
+            '.art-contextmenu',
+            '.art-progress',
+            '[class*="art-layer-"]',
+            'button',
+            'a',
+          ].join(',')
+        );
+      if (hitsControl) return;
+      art.toggle();
+    });
+  }
+
+  // ===================================================================
   // iOS FULLSCREEN FIX
   //
   // iOS Safari only has PARTIAL Fullscreen API support: it only honours
