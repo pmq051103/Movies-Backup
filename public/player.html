@@ -9,6 +9,34 @@
   html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   #player { width: 100%; height: 100%; }
 
+  /* ── Cursor + hover-to-reveal fix ────────────────────────────────
+     Artplayer hides the OS cursor and the bottom control bar together
+     under one internal "idle" state, and — inside an iframe — that
+     state was flipping on click instead of tracking real mouse
+     hover/movement, so the cursor vanished the moment you clicked
+     and the bar only reappeared on another click. Two explicit,
+     always-on overrides instead of Artplayer's internal state:
+     1. Cursor is never hidden by the player, full stop.
+     2. Plain CSS :hover reveals the bottom bar directly — no JS
+        click-state involved, so hovering (not clicking) is what
+        shows/hides it, like every other video site. */
+  .art-video-player,
+  .art-video-player .art-video,
+  .art-video-player video {
+    cursor: auto !important;
+  }
+  .art-video-player .art-bottom {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .art-video-player:hover .art-bottom,
+  .art-video-player.art-hover .art-bottom,
+  .art-video-player.art-control-show .art-bottom {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
   /* ── Mobile control-bar fix ──────────────────────────────────────
      Verified against Artplayer 5.4.0's actual source (not guessed):
      controls never get a `data-name` attribute — that selector never
@@ -21,17 +49,21 @@
 
      What's ACTUALLY in the bottom bar on mobile (real classes, e.g.
      `.art-control-playAndPause`): rewind, play/pause, forward, volume,
-     time text, setting, pip, fullscreen — too wide for a phone screen,
-     pushing fullscreen off to the right.
+     time text, next-episode, subtitle, setting, pip, fullscreen — too
+     wide for a phone screen, pushing fullscreen off to the right.
 
      Fix: play/pause + rewind/forward now live in a big overlay on top
      of the video itself (#kgp-center-controls below), so their bottom-bar
      copies are hidden on mobile — freeing most of the row's width so
-     fullscreen fits without scrolling. */
+     fullscreen fits without scrolling. The custom "next episode" button
+     is also dropped on mobile (users already have Danh sách tập below
+     the player for that — PiP stays, it's genuinely useful on phones
+     and was asked to be kept). */
   @media (max-width: 480px) {
     .art-bottom .art-control-fast-rewind,
     .art-bottom .art-control-fast-forward,
-    .art-bottom .art-control-playAndPause {
+    .art-bottom .art-control-playAndPause,
+    .art-bottom .art-control-kgp-next-episode {
       display: none !important;
     }
     .art-controls,
@@ -530,21 +562,9 @@
         position: 'right',
         name: 'kgp-next-episode',
         index: 10,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"><path fill="currentColor" d="M6 18 14.5 12 6 6v12ZM16 6v12h2V6h-2Z"/></svg>',
         tooltip: 'Tập tiếp theo',
         click: function () { postToParent({ action: 'nextEpisode' }); },
-      },
-      {
-        // Decorative — mirrors the reference player's mic icon in the
-        // bottom bar. Not wired to a real feature (voice search / audio
-        // description isn't something this app has), so it just shows a
-        // small "sắp ra mắt" hint rather than silently doing nothing.
-        position: 'right',
-        name: 'kgp-mic',
-        index: 15,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>',
-        tooltip: 'Sắp ra mắt',
-        click: function () {},
       },
       {
         // "Phụ đề" (CC) — toggles the .kgp-cc-popup layer built above.

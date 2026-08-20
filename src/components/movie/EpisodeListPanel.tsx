@@ -3,7 +3,7 @@ import {
   FaListUl,
   FaPlay,
   FaClosedCaptioning,
-  FaMicrophone,
+  FaVolumeUp,
   FaLanguage,
   FaServer,
 } from 'react-icons/fa';
@@ -12,7 +12,7 @@ import type { Episode } from '@/types';
 
 function episodeServerIcon(serverName: string) {
   const n = serverName.toLowerCase();
-  if (n.includes('thuyết minh') || n.includes('lồng tiếng')) return FaMicrophone;
+  if (n.includes('thuyết minh') || n.includes('lồng tiếng')) return FaVolumeUp;
   if (n.includes('song ngữ')) return FaLanguage;
   if (n.includes('phụ đề') || n.includes('vietsub')) return FaClosedCaptioning;
   return FaServer;
@@ -65,14 +65,18 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="flex items-center gap-2 text-base font-bold text-white">
           <FaListUl className="text-[#FECF59]" />
           Danh sách tập
         </div>
 
+        {/* Server / audio-track pills — plain text by default, a white
+            outline box (not a filled color) marks the active one, so
+            they read as a row of selectable tags instead of a wall of
+            identical buttons. */}
         {episodes.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
             {episodes.map((ep, idx) => {
               const Icon = episodeServerIcon(ep.server_name);
               const active = idx === activeServer;
@@ -85,10 +89,10 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
                     setPage(0);
                   }}
                   title={ep.server_name}
-                  className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'border-[#FECF59]/50 bg-[#FECF59]/10 text-[#FECF59]'
-                      : 'border-transparent text-gray-400 hover:text-gray-200'
+                      ? 'bg-white/[0.08] text-white ring-2 ring-inset ring-white'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -102,7 +106,7 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="ml-auto flex shrink-0 items-center gap-2 text-xs font-medium text-gray-400 transition-colors hover:text-gray-200"
+          className="ml-auto flex shrink-0 items-center gap-2 text-sm font-medium text-gray-400 transition-colors hover:text-gray-200"
         >
           {collapsed ? 'Mở rộng' : 'Rút gọn'}
           <span
@@ -131,7 +135,7 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
                 key={p}
                 type="button"
                 onClick={() => setPage(p)}
-                className={`w-[84px] shrink-0 rounded-md py-1.5 text-center text-xs font-semibold transition-colors ${
+                className={`w-[92px] shrink-0 rounded-md py-2 text-center text-sm font-semibold transition-colors ${
                   activeRange
                     ? 'bg-[#FECF59] text-[#0f1115]'
                     : 'bg-[#1f2128] text-gray-300 hover:bg-[#2a2d36] hover:text-white'
@@ -146,7 +150,7 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
 
       {collapsed ? (
         /* Rút gọn — lưới nút "Tập N" gọn */
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {pageItems.map((sd, idx) => {
             const isActive =
               currentServerName === currentEpisodeServer.server_name &&
@@ -157,13 +161,13 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
                 type="button"
                 onClick={() => onSelect(sd.slug, currentEpisodeServer.server_name)}
                 title={sd.name}
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors ${
+                className={`flex h-12 items-center justify-center gap-2 rounded-lg px-2 text-sm font-bold transition-colors ${
                   isActive
                     ? 'bg-[#FECF59] text-[#0f1115] shadow-md shadow-[#FECF59]/30'
                     : 'bg-[#1f2128] text-gray-200 hover:bg-[#FECF59] hover:text-[#0f1115]'
                 }`}
               >
-                <FaPlay className="h-2.5 w-2.5 shrink-0 opacity-60" />
+                <FaPlay className="h-3 w-3 shrink-0 opacity-60" />
                 <span className="truncate">Tập {start + idx + 1}</span>
               </button>
             );
@@ -201,7 +205,7 @@ const EpisodeListPanel: React.FC<EpisodeListPanelProps> = ({
                 >
                   <FaPlay className="h-3 w-3" />
                 </span>
-                <span className="absolute bottom-2 left-3 z-10 text-xs font-bold text-white">
+                <span className="absolute bottom-2 left-3 z-10 text-sm font-bold text-white">
                   Tập {start + idx + 1}
                 </span>
               </button>

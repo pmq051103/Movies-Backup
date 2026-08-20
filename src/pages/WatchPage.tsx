@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,7 @@ import {
   FaUserCircle,
   FaCheckCircle,
   FaClock,
+  FaCompress,
 } from 'react-icons/fa';
 
 import { EpisodeListPanel, MovieRow } from '@/components/movie';
@@ -674,6 +676,50 @@ export default function WatchPage() {
     );
   }
 
+  // Iframe + logo watermark — identical markup used both inline (normal
+  // viewing) and inside the cinema-mode portal, so there's exactly one
+  // definition of "what the player looks like" instead of two copies
+  // that could drift apart.
+  const mediaContent = (
+    <>
+      {embedUrl ? (
+        <iframe
+          ref={iframeRef}
+          src={embedUrl}
+          className="absolute inset-0 h-full w-full"
+          allow="autoplay; fullscreen; encrypted-media"
+          {...(embedUrl.startsWith('/player.html')
+            ? {}
+            : { sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-presentation' })}
+          allowFullScreen
+          title={currentEpisodeData?.name ?? movie.name}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+          <FaFilm className="text-4xl text-gray-600" />
+        </div>
+      )}
+
+      {!embedUrl.startsWith('/player.html') && (
+        <Link
+          to={ROUTES.HOME}
+          className="pointer-events-auto absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 backdrop-blur-sm transition-colors hover:bg-black/70"
+          title="Không Gian Phim"
+        >
+          <img
+            src="/logo.png"
+            alt="Không Gian Phim"
+            className="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6"
+            draggable={false}
+          />
+          <span className="text-xs font-semibold text-white drop-shadow-sm sm:text-sm">
+            Không Gian Phim
+          </span>
+        </Link>
+      )}
+    </>
+  );
+
   return (
     <>
       <Helmet>
@@ -690,20 +736,56 @@ export default function WatchPage() {
         <link rel="canonical" href={`https://khonggianphim.online/xem/${slug}`} />
       </Helmet>
 
-      {/* Cinema mode backdrop — full-viewport dark surface. Clicking it
-          exits cinema mode. Sits BEHIND the player (z-40) so the player
-          (z-50) sits on top and appears "enlarged". */}
-      <AnimatePresence>
-        {cinemaMode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black"
-            onClick={() => setCinemaMode(false)}
-          />
+      {/* Cinema mode — rendered via a portal straight into <body>, not
+          in place. It was nested a few levels deep inside this page's
+          own layout before, and something in that ancestor chain was
+          quietly turning its `fixed` positioning into something scoped
+          to the content column instead of the real viewport — so it
+          never actually grew past the normal player's size, just
+          added a dark backdrop around it. Portaling it to <body>
+          sidesteps that entirely: this is now the only thing on the
+          page, sized directly off viewport units (min of "fill by
+          width" vs "fill by height"), so it's genuinely as large as a
+          16:9 video can be on the screen, not just re-skinned. */}
+      {cinemaMode &&
+        createPortal(
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black"
+              onClick={() => setCinemaMode(false)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div
+                ref={playerContainerRef}
+                className="relative"
+                style={{
+                  width: 'min(100vw, calc(100vh * 16 / 9))',
+                  height: 'min(100vh, calc(100vw * 9 / 16))',
+                }}
+              >
+                {mediaContent}
+              </div>
+
+              {/* Exit-cinema-mode button — part of this SAME portal, so
+                  it's always on top and reachable no matter what;
+                  before, the equivalent toggle lived in the controls
+                  bar back on the page, which this overlay covered up —
+                  that's what made cinema mode impossible to leave. */}
+              <button
+                type="button"
+                onClick={() => setCinemaMode(false)}
+                className="fixed right-3 top-3 z-[60] flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+              >
+                <FaCompress className="h-3.5 w-3.5" />
+                Thoát rạp
+              </button>
+            </div>
+          </>,
+          document.body,
         )}
-      </AnimatePresence>
 
       <motion.div
         variants={fadeIn}
@@ -714,82 +796,19 @@ export default function WatchPage() {
         {/* Narrower content column (was full-width edge-to-edge) so text
             and controls don't stretch too wide on large monitors. */}
         <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
-          {/* Player — full width, controls + two-column info sit below it. */}
+          {/* Player — full width, controls + two-column info sit below it.
+              While cinema mode is on, this normal inline slot is skipped
+              entirely (the portal above renders the actual player), but
+              the surrounding page still renders normally underneath the
+              dark backdrop. */}
           <div>
-              {/* Player — when cinema mode is on, elevate to fixed
-                  full-viewport (rạp thật sự phóng to). When off, sits
-                  inline in the normal 16:9 responsive slot. */}
-              <div
-                className={
-                  cinemaMode
-                    ? 'fixed inset-0 z-50 flex items-center justify-center bg-black'
-                    : 'relative overflow-hidden rounded-xl bg-black'
-                }
-              >
-                <div
-                  ref={playerContainerRef}
-                  className={
-                    cinemaMode
-                      ? 'relative w-full max-w-[100vw]'
-                      : 'relative w-full'
-                  }
-                  style={
-                    cinemaMode
-                      ? { aspectRatio: '16 / 9', maxHeight: '100vh' }
-                      : { paddingTop: '56.25%' }
-                  }
-                >
-                  {embedUrl ? (
-                    <iframe
-                      ref={iframeRef}
-                      src={embedUrl}
-                      className="absolute inset-0 h-full w-full"
-                      allow="autoplay; fullscreen; encrypted-media"
-                      // Only sandbox cross-origin embeds (upstream player).
-                      // Our same-origin /player.html needs unrestricted
-                      // access so postMessage works for auto-next.
-                      {...(embedUrl.startsWith('/player.html')
-                        ? {}
-                        : { sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-presentation' })}
-                      allowFullScreen
-                      title={currentEpisodeData?.name ?? movie.name}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                      <FaFilm className="text-4xl text-gray-600" />
-                    </div>
-                  )}
-
-                  {/* Logo watermark — top-left corner of video, styled as a
-                      rounded pill badge (icon + site name), matching the
-                      khophim.org-style branding reference.
-                      Only rendered for the cross-origin fallback embed. Our
-                      own /player.html embed (the normal case) renders this
-                      same badge itself, as an Artplayer *layer* living
-                      inside the element that goes fullscreen — that's the
-                      only way the logo survives the player's own fullscreen
-                      button, since that button fullscreens the iframe's
-                      internal player container, not this parent div. If we
-                      also drew it here the two badges would double up. */}
-                  {!embedUrl.startsWith('/player.html') && (
-                    <Link
-                      to={ROUTES.HOME}
-                      className="pointer-events-auto absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 backdrop-blur-sm transition-colors hover:bg-black/70"
-                      title="Không Gian Phim"
-                    >
-                      <img
-                        src="/logo.png"
-                        alt="Không Gian Phim"
-                        className="h-5 w-5 rounded-full object-cover sm:h-6 sm:w-6"
-                        draggable={false}
-                      />
-                      <span className="text-xs font-semibold text-white drop-shadow-sm sm:text-sm">
-                        Không Gian Phim
-                      </span>
-                    </Link>
-                  )}
+            {!cinemaMode && (
+              <div className="relative overflow-hidden rounded-xl bg-black">
+                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                  {mediaContent}
                 </div>
               </div>
+            )}
 
               {/* Resume banner */}
               <AnimatePresence>
@@ -830,7 +849,7 @@ export default function WatchPage() {
                Xem chung / Báo lỗi). Items without real backing functionality
                yet (Thêm vào, Bỏ qua giới thiệu) show a brief "coming soon"
                bubble instead of silently doing nothing. ---- */}
-          <div className="relative mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-white/10 pb-4">
+          <div className="relative mt-4 flex flex-wrap items-center justify-between gap-y-3 border-b border-white/10 pb-4 sm:justify-start sm:gap-x-6">
             <button
               type="button"
               onClick={handleToggleFavorite}
@@ -841,7 +860,7 @@ export default function WatchPage() {
               ) : (
                 <FaRegHeart className="h-[18px] w-[18px]" />
               )}
-              <span className="text-[11px] font-medium">{t('movie.addFavorite')}</span>
+              <span className="hidden text-sm font-medium sm:inline">{t('movie.addFavorite')}</span>
             </button>
 
             <div className="relative">
@@ -851,7 +870,7 @@ export default function WatchPage() {
                 className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
               >
                 <FaPlus className="h-[18px] w-[18px]" />
-                <span className="text-[11px] font-medium">{t('movie.addToList')}</span>
+                <span className="hidden text-sm font-medium sm:inline">{t('movie.addToList')}</span>
               </button>
               {comingSoon === 'addToList' && <ComingSoonBubble />}
             </div>
@@ -868,7 +887,7 @@ export default function WatchPage() {
                   <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="text-[11px] font-medium">{t('watch.autoNext')}</span>
+              <span className="hidden text-sm font-medium sm:inline">{t('watch.autoNext')}</span>
             </button>
 
             <div className="relative">
@@ -878,7 +897,7 @@ export default function WatchPage() {
                 className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
               >
                 <FaForward className="h-[18px] w-[18px]" />
-                <span className="text-[11px] font-medium">{t('watch.skipIntro')}</span>
+                <span className="hidden text-sm font-medium sm:inline">{t('watch.skipIntro')}</span>
               </button>
               {comingSoon === 'skipIntro' && <ComingSoonBubble />}
             </div>
@@ -895,7 +914,7 @@ export default function WatchPage() {
                   <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="text-[11px] font-medium">{t('watch.cinemaMode')}</span>
+              <span className="hidden text-sm font-medium sm:inline">{t('watch.cinemaMode')}</span>
             </button>
 
             <div className="relative">
@@ -905,7 +924,7 @@ export default function WatchPage() {
                 className="flex flex-col items-center gap-1 text-white/80 transition-colors hover:text-white"
               >
                 <FaShareAlt className="h-4 w-4" />
-                <span className="text-[11px] font-medium">{t('movie.share')}</span>
+                <span className="hidden text-sm font-medium sm:inline">{t('movie.share')}</span>
               </button>
               <AnimatePresence>
                 {shareOpen && (
@@ -926,18 +945,20 @@ export default function WatchPage() {
             </div>
           </div>
 
-          {/* ---- Info row — poster + title/badges block, description
-               beside it, cast grid on the far right, mirroring the
-               reference layout below the player. Badge styling ported
-               from MovieDetailPage's left sidebar so both pages agree
-               visually (gold IMDb outline, colored quality chip, green/
-               amber completion pill with icon). ---- */}
-          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
-            {/* Left: poster thumb + (title/badges column | description column) */}
-            <div className="flex flex-1 gap-4 min-w-0">
+          {/* ---- Info card — poster + title/badges/description/cast AND
+               the episode list live inside this one bordered block, so
+               "Danh sách tập" reads as part of the movie-info panel
+               instead of a separate floating section underneath it. ---- */}
+          <div className="mt-6">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            {/* LEFT column — poster+title+description, and (below it,
+                narrower — only as wide as this column) the episode list.
+                The cast grid does NOT live in this column. */}
+            <div className="flex-1 min-w-0">
+            <div className="flex gap-4">
               <Link
                 to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                className="relative w-24 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-32 lg:w-36"
+                className="relative w-24 shrink-0 overflow-hidden rounded-lg sm:w-32 lg:w-36"
               >
                 <img
                   src={getMoviePoster(movie.poster_url, movie.thumb_url)}
@@ -966,11 +987,17 @@ export default function WatchPage() {
                       {movie.name}
                     </Link>
                     {movie.origin_name && movie.origin_name !== movie.name && (
-                      <p className="text-sm italic text-gray-400">{movie.origin_name}</p>
+                      <p className="text-base italic text-gray-400">{movie.origin_name}</p>
                     )}
+                    {movie.view ? (
+                      <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm">
+                        <FaEye className="text-[#FECF59]" />
+                        {movie.view.toLocaleString()} {t('movie.views')}
+                      </div>
+                    ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                  <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
                     {(movie.tmdb?.vote_average || movie.imdb?.id) && (
                       <span className="flex items-center gap-1 rounded-md border border-[#FECF59] bg-transparent px-2.5 py-1">
                         <span className="font-extrabold text-[#FECF59]">IMDb</span>
@@ -1015,7 +1042,7 @@ export default function WatchPage() {
                         <Link
                           key={cat.slug}
                           to={`/the-loai/${cat.slug}`}
-                          className="rounded-full border border-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
+                          className="rounded-full border border-gray-700 px-3 py-1 text-sm font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
                         >
                           {cat.name}
                         </Link>
@@ -1027,7 +1054,7 @@ export default function WatchPage() {
                       complete, amber + clock while still ongoing. */}
                   {hasEpisodeList && movie.episode_current && (
                     <div
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
                         movie.status === MOVIE_STATUS.COMPLETED
                           ? 'bg-emerald-500/15 text-emerald-400'
                           : 'bg-amber-500/15 text-amber-400'
@@ -1050,13 +1077,13 @@ export default function WatchPage() {
                     stretched huge on wide screens. */}
                 {movie.content && (
                   <div className="min-w-0 space-y-2">
-                    <p className="line-clamp-4 text-sm leading-relaxed text-gray-400 sm:line-clamp-5">
+                    <p className="line-clamp-4 text-base leading-relaxed text-gray-400 sm:line-clamp-5">
                       {movie.content.replace(/<[^>]*>/g, '')}
                     </p>
 
                     <Link
                       to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                      className="inline-flex items-center gap-1 text-sm font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
+                      className="inline-flex items-center gap-1 text-base font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
                     >
                       {t('watch.movieInfo')}
                       <FaChevronRight className="h-3 w-3" />
@@ -1066,18 +1093,47 @@ export default function WatchPage() {
               </div>
             </div>
 
-            {/* Right: view count + cast grid */}
-            <div className="w-full shrink-0 lg:w-72 xl:w-80">
-              {movie.view ? (
-                <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm">
-                  <FaEye className="text-[#FECF59]" />
-                  {movie.view.toLocaleString()} {t('movie.views')}
-                </div>
-              ) : null}
+            {/* ---- Episode section — nested inside the LEFT column only
+                 (same width as the title/description above it, not the
+                 full card), so it reads as part of the movie-info block
+                 and sits right under the description instead of
+                 spanning under the cast column too. ---- */}
+            {episodes.length > 0 && (() => {
+              const hasMultipleEpisodes = episodes.some(
+                (ep) => (ep.server_data?.length ?? 0) > 1,
+              );
 
+              return (
+                <div className="mt-6 border-t border-white/10 pt-6">
+                  {hasMultipleEpisodes ? (
+                    <EpisodeListPanel
+                      episodes={episodes}
+                      backdropUrl={getMoviePoster(movie.thumb_url, movie.poster_url)}
+                      currentEpisodeSlug={currentEpisodeData?.slug}
+                      currentServerName={currentServer?.server_name}
+                      onSelect={(episodeSlug, serverName) =>
+                        navigate(
+                          `${ROUTES.WATCH}/${movie.slug}?tap=${episodeSlug}&sv=${encodeURIComponent(serverName)}${preferSource ? `&src=${preferSource}` : ''}`,
+                        )
+                      }
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-base text-gray-400">
+                      {t('movie.singleMovieNote')}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            </div>
+
+            {/* RIGHT column — cast only. Same divider treatment as the
+                info→episodes split above: a plain hairline, no boxed
+                border around the whole panel. */}
+            <div className="w-full shrink-0 border-t border-white/10 pt-6 lg:w-72 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0 xl:w-80">
               {movie.actor && movie.actor.length > 0 && (
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-300">
+                  <h3 className="mb-3 text-base font-semibold text-gray-300">
                     {t('movie.cast')}
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
@@ -1107,7 +1163,7 @@ export default function WatchPage() {
                             <FaUserCircle className="h-full w-full text-white/25" />
                           )}
                         </div>
-                        <span className="line-clamp-2 text-xs leading-tight text-gray-400">
+                        <span className="line-clamp-2 text-sm leading-tight text-gray-400">
                           {person.name}
                         </span>
                       </div>
@@ -1117,38 +1173,7 @@ export default function WatchPage() {
               )}
             </div>
           </div>
-
-          {/* ---- Episode section — identical "Danh sách tập" design used
-               on the movie detail page (icon server tabs, 80-per-page
-               range chunks, Rút gọn/Mở rộng thumbnail toggle) instead of
-               a separately-styled block, so the two pages match. ---- */}
-          {episodes.length > 0 && (() => {
-            const hasMultipleEpisodes = episodes.some(
-              (ep) => (ep.server_data?.length ?? 0) > 1,
-            );
-
-            return (
-              <div className="mt-8">
-                {hasMultipleEpisodes ? (
-                  <EpisodeListPanel
-                    episodes={episodes}
-                    backdropUrl={getMoviePoster(movie.thumb_url, movie.poster_url)}
-                    currentEpisodeSlug={currentEpisodeData?.slug}
-                    currentServerName={currentServer?.server_name}
-                    onSelect={(episodeSlug, serverName) =>
-                      navigate(
-                        `${ROUTES.WATCH}/${movie.slug}?tap=${episodeSlug}&sv=${encodeURIComponent(serverName)}${preferSource ? `&src=${preferSource}` : ''}`,
-                      )
-                    }
-                  />
-                ) : (
-                  <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-sm text-gray-400">
-                    {t('movie.singleMovieNote')}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          </div>
 
           {/* You might also like */}
           <RelatedMovies
