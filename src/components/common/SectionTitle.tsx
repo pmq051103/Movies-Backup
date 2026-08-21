@@ -25,10 +25,15 @@ export default function SectionTitle({ title, viewAllLink, className = '' }: Sec
         <Link
           to={viewAllLink}
           aria-label={t('common.seeAll')}
-          className="group hidden shrink-0 items-center gap-1 text-[13px] font-medium text-white/70 transition-colors hover:text-[#ffd166] sm:inline-flex"
+          className="group flex shrink-0 items-center gap-1 text-[13px] font-medium text-white/70 transition-colors hover:text-[#ffd166]"
         >
-          <span>{t('common.seeAll')}</span>
-          <FaChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+          <span className="hidden sm:inline">{t('common.seeAll')}</span>
+          {/* Mobile: a bare outlined ">" circle — "Xem tất cả" text has no
+              room here, so the arrow alone stands in for it. */}
+          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/25 sm:hidden">
+            <FaChevronRight className="h-3 w-3" />
+          </span>
+          <FaChevronRight className="hidden h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 sm:inline-block" />
         </Link>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FaPlay, FaHeart, FaExclamation, FaChevronLeft, FaChevronRight } from "react-icons/fa";
@@ -54,6 +54,15 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
   // instead of bailing out early before these run.
   const active: MovieListItem | undefined =
     items.length > 0 ? items[Math.min(activeIdx, items.length - 1)] : undefined;
+
+  // Auto-advance the spotlight every few seconds, like the reference
+  // carousel — paused implicitly whenever there's nothing to rotate
+  // through, and reset whenever the item count changes.
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const id = setInterval(() => goToMovie("next"), 6000);
+    return () => clearInterval(id);
+  }, [items.length, goToMovie]);
 
   const isFav = useFavoriteStore((s) =>
     active ? s.favorites.some((f) => f.slug === active.slug) : false,
@@ -212,33 +221,36 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
           </div>
         </div>
 
-        {/* Prev/next arrows — overlay the spotlight panel edges */}
+        {/* Prev/next arrows — desktop only. Docked to the bottom-right
+            corner instead of floating mid-panel, so they never sit on top
+            of the title/description text on the left. Mobile relies on
+            the dot pagination + auto-advance below instead. */}
         {items.length > 1 && (
-          <>
+          <div className="absolute bottom-4 right-4 z-20 hidden items-center gap-2 sm:flex">
             <button
               type="button"
               onClick={() => goToMovie("prev")}
               aria-label={t("common.scrollLeft")}
-              className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:left-5 sm:h-12 sm:w-12"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
             >
-              <FaChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+              <FaChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => goToMovie("next")}
               aria-label={t("common.scrollRight")}
-              className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:right-5 sm:h-12 sm:w-12"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
             >
-              <FaChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              <FaChevronRight className="h-4 w-4" />
             </button>
-          </>
+          </div>
         )}
 
-        {/* Thumbnail filmstrip — centered, straddling the boundary between
-            the spotlight panel and the page background: half tucked inside
-            the panel's bottom edge, half sitting below it. */}
+        {/* Thumbnail filmstrip (desktop) — centered, straddling the
+            boundary between the spotlight panel and the page background.
+            Mobile swaps this for a row of pagination dots below. */}
         {items.length > 1 && (
-          <div className="no-scrollbar absolute left-1/2 top-full z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 items-center gap-2 overflow-x-auto px-1 sm:gap-2.5">
+          <div className="no-scrollbar absolute left-1/2 top-full z-10 hidden max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 overflow-x-auto px-1 sm:flex">
             {items.map((m, idx) => {
               const isActive = idx === activeIdx;
               return (
@@ -248,7 +260,7 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
                   onClick={() => setActiveIdx(idx)}
                   aria-label={m.name}
                   aria-pressed={isActive}
-                  className={`relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-md shadow-lg shadow-black/40 transition-all duration-200 sm:w-[70px] lg:w-[84px] xl:w-[96px] ${
+                  className={`relative aspect-[2/3] w-[70px] shrink-0 overflow-hidden rounded-md shadow-lg shadow-black/40 transition-all duration-200 lg:w-[84px] xl:w-[96px] ${
                     isActive
                       ? "ring-2 ring-[#ffd166] ring-offset-2 ring-offset-[#0e0f16]"
                       : "opacity-70 hover:opacity-100"
@@ -262,6 +274,29 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
                     onError={onImgError}
                   />
                 </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination dots (mobile) — same active-index state as the
+            thumbnail strip, just a lighter-weight indicator that fits a
+            narrow screen instead of a row of tiny posters. */}
+        {items.length > 1 && (
+          <div className="absolute left-1/2 top-full z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 flex-wrap items-center justify-center gap-1.5 sm:hidden">
+            {items.map((m, idx) => {
+              const isActive = idx === activeIdx;
+              return (
+                <button
+                  key={m._id ?? m.slug}
+                  type="button"
+                  onClick={() => setActiveIdx(idx)}
+                  aria-label={m.name}
+                  aria-pressed={isActive}
+                  className={`shrink-0 rounded-full transition-all duration-200 ${
+                    isActive ? "h-2 w-2 bg-[#ffd166]" : "h-1.5 w-1.5 bg-white/40"
+                  }`}
+                />
               );
             })}
           </div>
