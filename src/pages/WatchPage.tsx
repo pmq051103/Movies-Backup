@@ -21,6 +21,10 @@ import {
   FaClock,
   FaCompress,
   FaExpand,
+  FaMicrophone,
+  FaLanguage,
+  FaClosedCaptioning,
+  FaServer,
 } from 'react-icons/fa';
 
 import { EpisodeListPanel, MovieRow } from '@/components/movie';
@@ -252,17 +256,10 @@ export default function WatchPage() {
   const movie = data?.movie ?? null;
   const episodes = data?.episodes ?? [];
 
-  // Vietnamese label for the production status badge — same mapping used
-  // on MovieDetailPage, kept in sync so both pages agree on wording.
-  const statusLabel = movie
-    ? movie.status === MOVIE_STATUS.COMPLETED
-      ? 'Hoàn thành'
-      : movie.status === MOVIE_STATUS.ONGOING
-        ? 'Đang chiếu'
-        : movie.status === MOVIE_STATUS.TRAILER
-          ? 'Sắp chiếu'
-          : ''
-    : '';
+  // Note: a "statusLabel" (Hoàn thành / Đang chiếu / Sắp chiếu) text used
+  // to be shown here too, but `movie.episode_current` already comes back
+  // fully formatted from the API (e.g. "Hoàn Tất (20/20)"), so prefixing
+  // it duplicated the same information — removed.
   // "Phần N" chip — parsed out of the title/alias text, no dedicated
   // season field in the API (same heuristic as MovieDetailPage).
   const seasonLabel = (() => {
@@ -413,6 +410,22 @@ export default function WatchPage() {
       // cross-origin fallback — can't seek into upstream embeds
     }
   }, []);
+
+  /* ---- "Bản chiếu" (version) card helpers — same look as the detail
+      page's Phim lẻ tab, reused here so it's consistent everywhere. ---- */
+  const episodeServerIcon = (serverName: string) => {
+    const n = serverName.toLowerCase();
+    if (n.includes('thuyết minh') || n.includes('lồng tiếng')) return FaMicrophone;
+    if (n.includes('song ngữ')) return FaLanguage;
+    if (n.includes('phụ đề') || n.includes('vietsub')) return FaClosedCaptioning;
+    return FaServer;
+  };
+  const episodeServerCardColor = (serverName: string) => {
+    const n = serverName.toLowerCase();
+    if (n.includes('thuyết minh') || n.includes('lồng tiếng'))
+      return { solid: '#1c7a4b', soft: '#238f59' };
+    return { solid: '#494c58', soft: '#585b68' };
+  };
 
   const handleResume = useCallback(() => {
     seekTo(savedProgress);
@@ -1081,8 +1094,10 @@ export default function WatchPage() {
                     )}
                     {movie.episode_current && (
                       <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                        {/* Already fully formatted by the API (e.g.
+                            "Hoàn Tất (20/20)") — appending episode_total
+                            again duplicates it. */}
                         {movie.episode_current}
-                        {movie.episode_total ? ` / ${movie.episode_total}` : ''}
                       </span>
                     )}
                   </div>
@@ -1116,9 +1131,11 @@ export default function WatchPage() {
                       ) : (
                         <FaClock className="text-[10px]" />
                       )}
-                      {statusLabel ? `${statusLabel}: ` : ''}
+                      {/* `episode_current` already comes fully formatted
+                          (e.g. "Hoàn Tất (20/20)") — don't also prefix
+                          statusLabel or append episode_total, both
+                          duplicate what's already in the string. */}
                       {movie.episode_current}
-                      {movie.episode_total ? ` / ${movie.episode_total}` : ''}
                     </div>
                   )}
                 </div>
@@ -1168,6 +1185,80 @@ export default function WatchPage() {
                         )
                       }
                     />
+                  ) : episodes.length > 1 ? (
+                    /* ---- Phim lẻ có nhiều bản (server) khác nhau — hiện
+                        thẻ chọn bản y hệt trang chi tiết, thay vì chỉ 1
+                        dòng chữ, để người xem đổi được bản/ngôn ngữ. ---- */
+                    <div>
+                      <h3 className="mb-3 text-sm font-bold text-white">Các bản chiếu</h3>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {episodes.map((ep) => {
+                          const Icon = episodeServerIcon(ep.server_name);
+                          const color = episodeServerCardColor(ep.server_name);
+                          const firstEp = ep.server_data.find(
+                            (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
+                          );
+                          if (!firstEp) return null;
+                          const isActive = ep.server_name === currentServer?.server_name;
+                          return (
+                            <button
+                              key={ep.server_name}
+                              type="button"
+                              onClick={() => {
+                                const srcParam = preferSource ? `&src=${preferSource}` : '';
+                                navigate(
+                                  `${ROUTES.WATCH}/${movie.slug}?tap=${firstEp.slug}&sv=${encodeURIComponent(ep.server_name)}${srcParam}`,
+                                  { replace: true },
+                                );
+                              }}
+                              title={ep.server_name}
+                              className={`group/ver relative flex h-32 items-center overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015] ${
+                                isActive ? 'ring-2 ring-[#FECF59]' : ''
+                              }`}
+                              style={{ backgroundColor: color.solid }}
+                            >
+                              {/* Poster fills most of the card; the same
+                                  card color is layered on top as a
+                                  left-to-right gradient (solid → fully
+                                  transparent) so it melts into the photo
+                                  instead of a hard color/image seam. */}
+                              <img
+                                src={getMoviePoster(movie.poster_url, movie.thumb_url)}
+                                alt=""
+                                aria-hidden
+                                loading="lazy"
+                                className="pointer-events-none absolute inset-y-0 right-0 w-2/3 object-cover transition-transform duration-300 group-hover/ver:scale-105"
+                                onError={onImgError}
+                              />
+                              <div
+                                className="pointer-events-none absolute inset-y-0 left-0 w-full"
+                                style={{
+                                  background: `linear-gradient(to right, ${color.solid} 0%, ${color.solid} 38%, ${color.soft}cc 55%, transparent 88%)`,
+                                }}
+                              />
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/35 to-transparent" />
+
+                              <div className="relative z-10 flex h-full flex-col justify-center gap-2 py-3 pl-4 pr-6">
+                                <div className="flex items-center gap-2">
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#8a7ff5] text-white">
+                                    <Icon className="h-3 w-3" />
+                                  </span>
+                                  <span className="truncate text-xs font-semibold text-white/90">
+                                    {ep.server_name}
+                                  </span>
+                                </div>
+                                <p className="line-clamp-2 max-w-[65%] text-sm font-bold leading-snug text-white">
+                                  {movie.name}
+                                </p>
+                                <span className="inline-flex w-fit items-center rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a1a1a] transition-colors group-hover/ver:bg-[#FECF59]">
+                                  {isActive ? 'Đang xem' : 'Xem bản này'}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-base text-gray-400">
                       {t('movie.singleMovieNote')}

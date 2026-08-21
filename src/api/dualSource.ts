@@ -238,10 +238,11 @@ export async function getLatestMoviesDual(
 
   // Order = priority when slugs collide (near-certain for most titles,
   // since all three sources mirror the same underlying Vietnamese movie
-  // database — see dedupeBySlug below): phimapi's data is the richest,
-  // so it wins ties; vsmov next; ophim fills in whatever's exclusive to
-  // it or missing from the other two.
-  const merged = dedupeBySlug([...primaryItems, ...secondaryItems, ...tertiaryItems]);
+  // database — see dedupeBySlug below): vsmov wins ties — it has more
+  // servers per title and a nicer built-in player — then phimapi (richer
+  // catalog metadata), then ophim fills in whatever's exclusive to it or
+  // missing from the other two.
+  const merged = dedupeBySlug([...secondaryItems, ...primaryItems, ...tertiaryItems]);
 
   return {
     status: true,
@@ -460,9 +461,12 @@ export async function getMovieDetailDual(
     return withMergedEpisodes(base, ...others);
   }
 
-  // Default priority: phimapi > vsmov > ophim.
-  if (hasPrimary) return withMergedEpisodes(primary!, secondary ?? undefined, tertiary ?? undefined);
-  if (hasSecondary) return withMergedEpisodes(secondary!, tertiary ?? undefined);
+  // Default priority: vsmov > phimapi > ophim — vsmov titles have more
+  // servers and a nicer built-in player, so use it whenever the movie is
+  // available there, even without an explicit `prefer` from a list/search
+  // click.
+  if (hasSecondary) return withMergedEpisodes(secondary!, primary ?? undefined, tertiary ?? undefined);
+  if (hasPrimary) return withMergedEpisodes(primary!, tertiary ?? undefined);
   if (hasTertiary) return tertiary!;
 
   // All three failed — propagate an error so the UI can show it.

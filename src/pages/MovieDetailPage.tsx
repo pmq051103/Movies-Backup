@@ -502,8 +502,10 @@ export default function MovieDetailPage() {
                   )}
                   {hasEpisodeList || (isSeries && !isTrailerOnly) ? (
                     <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                      {/* `episode_current` already comes fully formatted
+                          from the API (e.g. "Hoàn Tất (38/38)", "Tập 6") —
+                          don't append episode_total or it duplicates. */}
                       {movie.episode_current}
-                      {movie.episode_total ? ` / ${movie.episode_total}` : ''}
                     </span>
                   ) : hasEpisodes ? (
                     <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">

@@ -9,7 +9,8 @@ import type {
 } from '@/types';
 
 /**
- * Multi-source movie detail: phimapi primary, vsmov + ophim1 fallback
+ * Multi-source movie detail: vsmov preferred when available (more
+ * servers per title + nicer built-in player), phimapi + ophim1 fallback
  * and episode server merge (extra playback sources).
  */
 export async function getMovieDetail(
