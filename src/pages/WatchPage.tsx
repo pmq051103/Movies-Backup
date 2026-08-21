@@ -16,6 +16,7 @@ import {
   FaShareAlt,
   FaEye,
   FaChevronRight,
+  FaChevronLeft,
   FaUserCircle,
   FaCheckCircle,
   FaClock,
@@ -858,6 +859,24 @@ export default function WatchPage() {
         {/* Narrower content column (was full-width edge-to-edge) so text
             and controls don't stretch too wide on large monitors. */}
         <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 lg:px-8">
+          {/* ---- Top title bar — back to the movie's detail page + a
+               one-line "Xem phim {name}{ - Tập X nếu là phim bộ}" label.
+               Only the chevron icon gets a circular frame; the text
+               itself stays plain (no pill/border/background). Skips
+               "- Tập X" for phim lẻ (hasEpisodeList false). ---- */}
+          <Link
+            to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+            className="my-6 inline-flex max-w-full items-center gap-2.5 text-base font-semibold text-white/90 transition-colors hover:text-white sm:text-lg lg:text-xl"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 transition hover:scale-110 hover:bg-white/10">
+              <FaChevronLeft className="h-4 w-4" />
+            </span>
+            <span className=" truncate lg:font-bold">
+              Xem phim {movie.name}
+              {hasEpisodeList && currentEpisodeData ? ` - ${currentEpisodeData.name}` : ''}
+            </span>
+          </Link>
+
           {/* Player — full width, controls + two-column info sit below it.
               While cinema mode is on, this normal inline slot is skipped
               entirely (the portal above renders the actual player), but
@@ -872,37 +891,37 @@ export default function WatchPage() {
               </div>
             )}
 
-              {/* Resume banner */}
-              <AnimatePresence>
-                {showResumePrompt && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-3 flex items-center gap-3 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-3"
+            {/* Resume banner */}
+            <AnimatePresence>
+              {showResumePrompt && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-3 flex items-center gap-3 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-3"
+                >
+                  <FaPlay className="shrink-0 text-red-400" />
+                  <p className="flex-1 text-sm text-gray-200">
+                    {t('watch.resumePrompt')}{' '}
+                    <span className="font-medium text-white">
+                      {Math.floor(savedProgress / 60)}:{String(Math.floor(savedProgress % 60)).padStart(2, '0')}
+                    </span>
+                  </p>
+                  <button
+                    onClick={handleResume}
+                    className="shrink-0 rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
                   >
-                    <FaPlay className="shrink-0 text-red-400" />
-                    <p className="flex-1 text-sm text-gray-200">
-                      {t('watch.resumePrompt')}{' '}
-                      <span className="font-medium text-white">
-                        {Math.floor(savedProgress / 60)}:{String(Math.floor(savedProgress % 60)).padStart(2, '0')}
-                      </span>
-                    </p>
-                    <button
-                      onClick={handleResume}
-                      className="shrink-0 rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-                    >
-                      {t('watch.resume')}
-                    </button>
-                    <button
-                      onClick={() => setResumeDismissed(true)}
-                      className="shrink-0 rounded-md bg-gray-700 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-600"
-                    >
-                      {t('common.close', 'Bỏ qua')}
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {t('watch.resume')}
+                  </button>
+                  <button
+                    onClick={() => setResumeDismissed(true)}
+                    className="shrink-0 rounded-md bg-gray-700 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-600"
+                  >
+                    {t('common.close', 'Bỏ qua')}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* ---- Controls bar — full width, plain icon+label buttons under
@@ -949,7 +968,7 @@ export default function WatchPage() {
                   <FaToggleOff className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="text-xs font-medium sm:text-sm">{t('watch.autoNext')}</span>
+              <span className="hidden text-sm font-medium sm:inline">{t('watch.autoNext')}</span>
             </button>
 
             <div className="relative">
@@ -976,7 +995,7 @@ export default function WatchPage() {
                   <FaExpand className="h-[18px] w-[18px]" />
                 )}
               </span>
-              <span className="text-xs font-medium sm:text-sm">
+              <span className="hidden text-sm font-medium sm:inline">
                 {cinemaMode ? t('watch.exitCinema') : t('watch.cinemaMode')}
               </span>
             </button>
@@ -1014,307 +1033,326 @@ export default function WatchPage() {
                "Danh sách tập" reads as part of the movie-info panel
                instead of a separate floating section underneath it. ---- */}
           <div className="mt-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-            {/* LEFT column — poster+title+description, and (below it,
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              {/* LEFT column — poster+title+description, and (below it,
                 narrower — only as wide as this column) the episode list.
                 The cast grid does NOT live in this column. */}
-            <div className="flex-1 min-w-0">
-            <div className="flex gap-4">
-              <Link
-                to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                className="relative w-24 shrink-0 overflow-hidden rounded-lg sm:w-32 lg:w-36"
-              >
-                <img
-                  src={getMoviePoster(movie.poster_url, movie.thumb_url)}
-                  alt={movie.name}
-                  onError={onImgError}
-                  className="w-full"
-                />
-                {movie.lang && (
-                  <span className="absolute left-1.5 top-1.5 rounded bg-[#01B4E4] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
-                    {movie.lang}
-                  </span>
-                )}
-              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex gap-4">
+                  <Link
+                    to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                    className="relative w-24 shrink-0 overflow-hidden rounded-lg sm:w-32 lg:w-36"
+                  >
+                    <img
+                      src={getMoviePoster(movie.poster_url, movie.thumb_url)}
+                      alt={movie.name}
+                      onError={onImgError}
+                      className="w-full"
+                    />
+                    {movie.lang && (
+                      <span className="absolute left-1.5 top-1.5 rounded bg-[#01B4E4] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
+                        {movie.lang}
+                      </span>
+                    )}
+                  </Link>
 
-              <div className="flex min-w-0 flex-1 flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-6">
-                {/* Title / badges / genres / status — same width as the
+                  <div className="flex min-w-0 flex-1 flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-6">
+                    {/* Title / badges / genres / status — same width as the
                     description column beside it (was a fixed narrow
                     column with the description stretching to fill all
                     remaining space — now an even 50/50 split). */}
-                <div className="min-w-0 space-y-2.5">
-                  <div>
-                    <Link
-                      to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                      className="text-xl font-bold text-white transition-colors hover:text-[#FECF59] sm:text-2xl"
-                    >
-                      {movie.name}
-                    </Link>
-                    {movie.origin_name && movie.origin_name !== movie.name && (
-                      <p className="text-base italic text-gray-400">{movie.origin_name}</p>
-                    )}
-                    {movie.view ? (
-                      <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm">
-                        <FaEye className="text-[#FECF59]" />
-                        {movie.view.toLocaleString()} {t('movie.views')}
+                    <div className="min-w-0 space-y-2.5">
+                      <div>
+                        <Link
+                          to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                          className="inline-block text-xl leading-[1.05] transition-opacity hover:opacity-80 sm:text-2xl"
+                          style={{
+                            fontFamily: "var(--font-display), 'Be Vietnam Pro', 'Inter', sans-serif",
+                            fontWeight: 800,
+                            letterSpacing: '-0.02em',
+                            backgroundImage:
+                              'linear-gradient(180deg, #ffffff 0%, #fff 55%, #fecf59 100%)',
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                          }}
+                        >
+                          {movie.name}
+                        </Link>
+                        {movie.origin_name && movie.origin_name !== movie.name && (
+                          <p className="mt-1.5 text-sm font-medium italic text-[#FECF59]/90">
+                            {movie.origin_name}
+                          </p>
+                        )}
+                        {movie.view ? (
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-white/90 backdrop-blur-sm">
+                            <FaEye className="text-[#FECF59]" />
+                            {movie.view.toLocaleString()} {t('movie.views')}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
-                    {(movie.tmdb?.vote_average || movie.imdb?.id) && (
-                      <span className="flex items-center gap-1 rounded-md border border-[#FECF59] bg-transparent px-2.5 py-1">
-                        <span className="font-extrabold text-[#FECF59]">IMDb</span>
-                        <span className="font-bold text-white">
-                          {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
-                        </span>
-                      </span>
-                    )}
-                    {movie.quality && (
-                      <span
-                        className="rounded-md border px-2.5 py-1 font-bold"
-                        style={{
-                          color: qualityStyle.text,
-                          borderColor: qualityStyle.border,
-                          backgroundColor: qualityStyle.bg,
-                        }}
-                      >
-                        {movie.quality}
-                      </span>
-                    )}
-                    {movie.year > 0 && (
-                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
-                        {movie.year}
-                      </span>
-                    )}
-                    {seasonLabel && (
-                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
-                        {seasonLabel}
-                      </span>
-                    )}
-                    {movie.episode_current && (
-                      <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
-                        {/* Already fully formatted by the API (e.g.
+                      <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
+                        {(movie.tmdb?.vote_average || movie.imdb?.id) && (
+                          <span className="flex items-center gap-1 rounded-md border border-[#FECF59] bg-transparent px-2.5 py-1">
+                            <span className="font-extrabold text-[#FECF59]">IMDb</span>
+                            <span className="font-bold text-white">
+                              {Number(movie.tmdb?.vote_average ?? 0).toFixed(1)}
+                            </span>
+                          </span>
+                        )}
+                        {movie.quality && (
+                          <span
+                            className="rounded-md border px-2.5 py-1 font-bold"
+                            style={{
+                              color: qualityStyle.text,
+                              borderColor: qualityStyle.border,
+                              backgroundColor: qualityStyle.bg,
+                            }}
+                          >
+                            {movie.quality}
+                          </span>
+                        )}
+                        {movie.year > 0 && (
+                          <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                            {movie.year}
+                          </span>
+                        )}
+                        {seasonLabel && (
+                          <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                            {seasonLabel}
+                          </span>
+                        )}
+                        {movie.episode_current && (
+                          <span className="rounded-md border border-white/10 bg-white/[0.06] px-2.5 py-1 text-white">
+                            {/* Already fully formatted by the API (e.g.
                             "Hoàn Tất (20/20)") — appending episode_total
                             again duplicates it. */}
-                        {movie.episode_current}
-                      </span>
-                    )}
-                  </div>
+                            {movie.episode_current}
+                          </span>
+                        )}
+                      </div>
 
-                  {movie.category && movie.category.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {movie.category.slice(0, 4).map((cat) => (
-                        <Link
-                          key={cat.slug}
-                          to={`/the-loai/${cat.slug}`}
-                          className="rounded-full border border-gray-700 px-3 py-1 text-sm font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
-                        >
-                          {cat.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Progress / status pill — green + checkmark once
-                      complete, amber + clock while still ongoing. */}
-                  {hasEpisodeList && movie.episode_current && (
-                    <div
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-                        movie.status === MOVIE_STATUS.COMPLETED
-                          ? 'bg-emerald-500/15 text-emerald-400'
-                          : 'bg-amber-500/15 text-amber-400'
-                      }`}
-                    >
-                      {movie.status === MOVIE_STATUS.COMPLETED ? (
-                        <FaCheckCircle className="text-[10px]" />
-                      ) : (
-                        <FaClock className="text-[10px]" />
+                      {movie.category && movie.category.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {movie.category.slice(0, 4).map((cat) => (
+                            <Link
+                              key={cat.slug}
+                              to={`/the-loai/${cat.slug}`}
+                              className="rounded-full border border-gray-700 px-3 py-1 text-sm font-medium text-gray-300 transition hover:border-[#FECF59] hover:text-[#FECF59]"
+                            >
+                              {cat.name}
+                            </Link>
+                          ))}
+                        </div>
                       )}
-                      {/* `episode_current` already comes fully formatted
+
+                      {/* Progress / status pill — green + checkmark once
+                      complete, amber + clock while still ongoing. */}
+                      {hasEpisodeList && movie.episode_current && (
+                        <div
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${movie.status === MOVIE_STATUS.COMPLETED
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-400'
+                            }`}
+                        >
+                          {movie.status === MOVIE_STATUS.COMPLETED ? (
+                            <FaCheckCircle className="text-[10px]" />
+                          ) : (
+                            <FaClock className="text-[10px]" />
+                          )}
+                          {/* `episode_current` already comes fully formatted
                           (e.g. "Hoàn Tất (20/20)") — don't also prefix
                           statusLabel or append episode_total, both
                           duplicate what's already in the string. */}
-                      {movie.episode_current}
+                          {movie.episode_current}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Description — same column width as the title block
+                    {/* Description — same column width as the title block
                     now (grid-cols-2 above), not an unbounded flex-1 that
                     stretched huge on wide screens. */}
-                {movie.content && (
-                  <div className="min-w-0 space-y-2">
-                    <p className="line-clamp-4 text-base leading-relaxed text-gray-400 sm:line-clamp-5">
-                      {movie.content.replace(/<[^>]*>/g, '')}
-                    </p>
+                    {movie.content && (
+                      <div className="min-w-0 space-y-2">
+                        <p className="line-clamp-4 text-base leading-relaxed text-gray-400 sm:line-clamp-5">
+                          {movie.content.replace(/<[^>]*>/g, '')}
+                        </p>
 
-                    <Link
-                      to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
-                      className="inline-flex items-center gap-1 text-base font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
-                    >
-                      {t('watch.movieInfo')}
-                      <FaChevronRight className="h-3 w-3" />
-                    </Link>
+                        <Link
+                          to={`${ROUTES.MOVIE_DETAIL}/${movie.slug}`}
+                          className="inline-flex items-center gap-1 text-base font-medium text-[#FECF59] transition hover:text-[#fff1cc]"
+                        >
+                          {t('watch.movieInfo')}
+                          <FaChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* ---- Episode section — nested inside the LEFT column only
+                {/* ---- Episode section — nested inside the LEFT column only
                  (same width as the title/description above it, not the
                  full card), so it reads as part of the movie-info block
                  and sits right under the description instead of
                  spanning under the cast column too. ---- */}
-            {episodes.length > 0 && (() => {
-              const hasMultipleEpisodes = episodes.some(
-                (ep) => (ep.server_data?.length ?? 0) > 1,
-              );
+                {episodes.length > 0 && (() => {
+                  const hasMultipleEpisodes = episodes.some(
+                    (ep) => (ep.server_data?.length ?? 0) > 1,
+                  );
 
-              return (
-                <div className="mt-6 border-t border-white/10 pt-6">
-                  {hasMultipleEpisodes ? (
-                    <EpisodeListPanel
-                      episodes={episodes}
-                      backdropUrl={getMoviePoster(movie.thumb_url, movie.poster_url)}
-                      currentEpisodeSlug={currentEpisodeData?.slug}
-                      currentServerName={currentServer?.server_name}
-                      onSelect={(episodeSlug, serverName) =>
-                        navigate(
-                          `${ROUTES.WATCH}/${movie.slug}?tap=${episodeSlug}&sv=${encodeURIComponent(serverName)}${preferSource ? `&src=${preferSource}` : ''}`,
-                        )
-                      }
-                    />
-                  ) : episodes.length > 1 ? (
-                    /* ---- Phim lẻ có nhiều bản (server) khác nhau — hiện
-                        thẻ chọn bản y hệt trang chi tiết, thay vì chỉ 1
-                        dòng chữ, để người xem đổi được bản/ngôn ngữ. ---- */
-                    <div>
-                      <h3 className="mb-3 text-sm font-bold text-white">Các bản chiếu</h3>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {episodes.map((ep) => {
-                          const Icon = episodeServerIcon(ep.server_name);
-                          const color = episodeServerCardColor(ep.server_name);
-                          const firstEp = ep.server_data.find(
-                            (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
-                          );
-                          if (!firstEp) return null;
-                          const isActive = ep.server_name === currentServer?.server_name;
-                          return (
-                            <button
-                              key={ep.server_name}
-                              type="button"
-                              onClick={() => {
-                                const srcParam = preferSource ? `&src=${preferSource}` : '';
-                                navigate(
-                                  `${ROUTES.WATCH}/${movie.slug}?tap=${firstEp.slug}&sv=${encodeURIComponent(ep.server_name)}${srcParam}`,
-                                  { replace: true },
-                                );
-                              }}
-                              title={ep.server_name}
-                              className={`group/ver relative flex h-32 items-center overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015] ${
-                                isActive ? 'ring-2 ring-[#FECF59]' : ''
-                              }`}
-                              style={{ backgroundColor: color.solid }}
-                            >
-                              {/* Poster fills most of the card; the same
+                  return (
+                    <div className="mt-6 border-t border-white/10 pt-6">
+                      {hasMultipleEpisodes ? (
+                        <EpisodeListPanel
+                          episodes={episodes}
+                          backdropUrl={getMoviePoster(movie.thumb_url, movie.poster_url)}
+                          currentEpisodeSlug={currentEpisodeData?.slug}
+                          currentServerName={currentServer?.server_name}
+                          onSelect={(episodeSlug, serverName) =>
+                            navigate(
+                              `${ROUTES.WATCH}/${movie.slug}?tap=${episodeSlug}&sv=${encodeURIComponent(serverName)}${preferSource ? `&src=${preferSource}` : ''}`,
+                            )
+                          }
+                        />
+                      ) : (
+                        /* ---- Phim lẻ — luôn hiện khối chọn bản, kể cả khi chỉ
+                            có đúng 1 server (episodes.length > 0 đã được đảm
+                            bảo ở guard bên ngoài), cùng chiều cao thẻ (h-42)
+                            và style y hệt trang chi tiết, cộng thêm nhãn "Đang
+                            xem" nổi bật để biết đang xem bản nào. ---- */
+                        <div>
+                          <h3 className="mb-4 text-2xl font-bold text-white">Các bản chiếu</h3>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {episodes.map((ep) => {
+                              const Icon = episodeServerIcon(ep.server_name);
+                              const color = episodeServerCardColor(ep.server_name);
+                              const firstEp = ep.server_data.find(
+                                (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
+                              );
+                              if (!firstEp) return null;
+                              const isActive = ep.server_name === currentServer?.server_name;
+                              return (
+                                <button
+                                  key={ep.server_name}
+                                  type="button"
+                                  onClick={() => {
+                                    const srcParam = preferSource ? `&src=${preferSource}` : '';
+                                    navigate(
+                                      `${ROUTES.WATCH}/${movie.slug}?tap=${firstEp.slug}&sv=${encodeURIComponent(ep.server_name)}${srcParam}`,
+                                      { replace: true },
+                                    );
+                                  }}
+                                  title={ep.server_name}
+                                  className={`group/ver relative flex h-42 items-center overflow-hidden rounded-xl text-left transition-transform hover:scale-[1.015] ${isActive ? 'ring-2 ring-[#FECF59]' : ''
+                                    }`}
+                                  style={{ backgroundColor: color.solid }}
+                                >
+                                  {/* Poster fills most of the card; the same
                                   card color is layered on top as a
                                   left-to-right gradient (solid → fully
                                   transparent) so it melts into the photo
                                   instead of a hard color/image seam. */}
-                              <img
-                                src={getMoviePoster(movie.poster_url, movie.thumb_url)}
-                                alt=""
-                                aria-hidden
-                                loading="lazy"
-                                className="pointer-events-none absolute inset-y-0 right-0 w-2/3 object-cover transition-transform duration-300 group-hover/ver:scale-105"
-                                onError={onImgError}
-                              />
-                              <div
-                                className="pointer-events-none absolute inset-y-0 left-0 w-full"
-                                style={{
-                                  background: `linear-gradient(to right, ${color.solid} 0%, ${color.solid} 38%, ${color.soft}cc 55%, transparent 88%)`,
-                                }}
-                              />
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/35 to-transparent" />
+                                  <img
+                                    src={getMoviePoster(movie.poster_url, movie.thumb_url)}
+                                    alt=""
+                                    aria-hidden
+                                    loading="lazy"
+                                    className="pointer-events-none absolute inset-y-0 right-0 w-2/3 object-cover transition-transform duration-300 group-hover/ver:scale-105"
+                                    onError={onImgError}
+                                  />
+                                  <div
+                                    className="pointer-events-none absolute inset-y-0 left-0 w-full"
+                                    style={{
+                                      background: `linear-gradient(to right, ${color.solid} 0%, ${color.solid} 38%, ${color.soft}cc 55%, transparent 88%)`,
+                                    }}
+                                  />
+                                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
-                              <div className="relative z-10 flex h-full flex-col justify-center gap-2 py-3 pl-4 pr-6">
-                                <div className="flex items-center gap-2">
-                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#8a7ff5] text-white">
-                                    <Icon className="h-3 w-3" />
-                                  </span>
-                                  <span className="truncate text-xs font-semibold text-white/90">
-                                    {ep.server_name}
-                                  </span>
-                                </div>
-                                <p className="line-clamp-2 max-w-[65%] text-sm font-bold leading-snug text-white">
-                                  {movie.name}
-                                </p>
-                                <span className="inline-flex w-fit items-center rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#1a1a1a] transition-colors group-hover/ver:bg-[#FECF59]">
-                                  {isActive ? 'Đang xem' : 'Xem bản này'}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 text-base text-gray-400">
-                      {t('movie.singleMovieNote')}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            </div>
+                                  {/* Nhãn "Đang xem" — góc trên-phải, nổi bật
+                                  riêng khỏi nút bên dưới để nhận ra ngay
+                                  đang xem bản nào mà không cần đọc chữ
+                                  trong nút. */}
+                                  {isActive && (
+                                    <span className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#FECF59] px-2.5 py-1 text-[11px] font-bold text-[#1a1a1a] shadow-md">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-[#1a1a1a] animate-pulse" />
+                                      Đang xem
+                                    </span>
+                                  )}
 
-            {/* RIGHT column — cast only. Same divider treatment as the
+                                  <div className="relative z-10 flex h-full flex-col justify-center gap-2.5 py-4 pl-5 pr-6">
+                                    <div className="flex items-center gap-2">
+                                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#8a7ff5] text-white">
+                                        <Icon className="h-3.5 w-3.5" />
+                                      </span>
+                                      <span className="truncate text-sm font-semibold text-white/90">
+                                        {ep.server_name}
+                                      </span>
+                                    </div>
+                                    <p className="line-clamp-2 max-w-[78%] text-base font-bold leading-snug text-white">
+                                      {movie.name}
+                                    </p>
+                                    <span className="inline-flex w-fit items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition-colors group-hover/ver:bg-[#FECF59]">
+                                      {isActive ? 'Đang xem' : 'Xem bản này'}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* RIGHT column — cast only. Same divider treatment as the
                 info→episodes split above: a plain hairline, no boxed
                 border around the whole panel. */}
-            <div className="w-full shrink-0 border-t border-white/10 pt-6 lg:w-72 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0 xl:w-80">
-              {movie.actor && movie.actor.length > 0 && (
-                <div>
-                  <h3 className="mb-3 text-base font-semibold text-gray-300">
-                    {t('movie.cast')}
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {(tmdbCast.length > 0
-                      ? tmdbCast.slice(0, 9).map((p) => ({
+              <div className="w-full shrink-0 border-t border-white/10 pt-6 lg:w-72 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0 xl:w-80">
+                {movie.actor && movie.actor.length > 0 && (
+                  <div>
+                    <h3 className="mb-3 text-base font-semibold text-gray-300">
+                      {t('movie.cast')}
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {(tmdbCast.length > 0
+                        ? tmdbCast.slice(0, 9).map((p) => ({
                           key: String(p.id),
                           name: p.name,
                           photo: getTmdbImageUrl(p.profile_path),
                         }))
-                      : movie.actor.slice(0, 9).map((name) => ({
+                        : movie.actor.slice(0, 9).map((name) => ({
                           key: name,
                           name,
                           photo: null as string | null,
                         }))
-                    ).map((person) => (
-                      <div key={person.key} className="flex flex-col items-center gap-2 text-center">
-                        <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-gray-800 text-sm font-bold text-gray-500 ring-1 ring-white/10">
-                          {person.photo ? (
-                            <img
-                              src={person.photo}
-                              alt={person.name}
-                              loading="lazy"
-                              onError={onImgError}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <FaUserCircle className="h-full w-full text-white/25" />
-                          )}
+                      ).map((person) => (
+                        <div key={person.key} className="flex flex-col items-center gap-2 text-center">
+                          <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-gray-800 text-sm font-bold text-gray-500 ring-1 ring-white/10">
+                            {person.photo ? (
+                              <img
+                                src={person.photo}
+                                alt={person.name}
+                                loading="lazy"
+                                onError={onImgError}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <FaUserCircle className="h-full w-full text-white/25" />
+                            )}
+                          </div>
+                          <span className="line-clamp-2 text-sm leading-tight text-gray-400">
+                            {person.name}
+                          </span>
                         </div>
-                        <span className="line-clamp-2 text-sm leading-tight text-gray-400">
-                          {person.name}
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
           </div>
 
           {/* You might also like */}
