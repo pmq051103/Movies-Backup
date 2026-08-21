@@ -142,6 +142,11 @@
     .art-bottom .art-control-playAndPause {
       display: none !important;
     }
+    /* Next-episode button crowds out fullscreen on narrow screens —
+       hide it here too; still reachable from the episode list. */
+    .art-bottom .art-control-kgp-next-episode {
+      display: none !important;
+    }
     .art-controls,
     .art-controls-left,
     .art-controls-right {
@@ -198,23 +203,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(20, 20, 24, 0.4);
       border: none;
       border-radius: 999px;
-      color: #fff;
+      color: rgba(255, 255, 255, 0.95);
       padding: 0;
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
     #kgp-center-controls .kgp-seek-btn { width: 44px; height: 44px; }
     #kgp-center-controls .kgp-seek-btn svg { width: 24px; height: 24px; }
     #kgp-center-controls .kgp-play-btn {
       width: 64px;
       height: 64px;
-      background: var(--kgp-accent);
-      color: #17140a;
     }
-    #kgp-center-controls .kgp-play-btn svg { width: 32px; height: 32px; }
+    #kgp-center-controls .kgp-play-btn svg { width: 30px; height: 30px; }
   }
 
   /* ── "Bật tiếng" (unmute) pill ──────────────────────────────────── */
@@ -363,14 +367,15 @@
         name: 'kgp-center-controls',
         html:
           '<div id="kgp-center-controls">' +
-            '<button type="button" class="kgp-seek-btn" aria-label="Tua lùi 10 giây" onclick="window.__kgpRewind(event)">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z" transform="scale(-1,1) translate(-24,0)"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
-            '</button>' +
+            '<button type="button" class="kgp-seek-btn" aria-label="Tua tới 10 giây" onclick="window.__kgpForward(event)">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 1-8.94 10.06 1 1 0 1 1 1.99-.23A7 7 0 1 0 12.5 5v2.5l-4-3.5 4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
+            '</button>'
+             +
             '<button type="button" id="kgp-center-play-btn" class="kgp-play-btn" aria-label="Phát / Dừng" onclick="window.__kgpTogglePlay(event)">' +
               '<svg id="kgp-center-play-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M7 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 0 0 0-1.68L8.54 5.98A1 1 0 0 0 7 6.82Z"/></svg>' +
             '</button>' +
-            '<button type="button" class="kgp-seek-btn" aria-label="Tua tới 10 giây" onclick="window.__kgpForward(event)">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 1-8.94 10.06 1 1 0 1 1 1.99-.23A7 7 0 1 0 12.5 5v2.5l-4-3.5 4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
+            '<button type="button" class="kgp-seek-btn" aria-label="Tua lùi 10 giây" onclick="window.__kgpRewind(event)">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>' +
             '</button>' +
           '</div>',
         style: {
@@ -411,7 +416,7 @@
         position: 'left',
         name: 'fast-rewind',
         index: 10,
-        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z" transform="scale(-1,1) translate(-24,0)"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 3a9 9 0 1 0 8.94 10.06 1 1 0 1 0-1.99-.23A7 7 0 1 1 12.5 5v2.5l4-3.5-4-3.5V3z"/><text x="12" y="16" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="currentColor">10</text></svg>',
         tooltip: '10 giây trước',
         click: function () { art.seek = art.currentTime - 10; },
       },

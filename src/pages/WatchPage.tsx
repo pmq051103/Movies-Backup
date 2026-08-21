@@ -1222,7 +1222,7 @@ export default function WatchPage() {
                             và style y hệt trang chi tiết, cộng thêm nhãn "Đang
                             xem" nổi bật để biết đang xem bản nào. ---- */
                         <div>
-                          <h3 className="mb-4 text-2xl font-bold text-white">Các bản chiếu</h3>
+                          <h3 className="mb-4 text-xl font-semibold text-white">Các bản chiếu</h3>
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             {episodes.map((ep) => {
                               const Icon = episodeServerIcon(ep.server_name);
@@ -1275,7 +1275,7 @@ export default function WatchPage() {
                                   trong nút. */}
                                   {isActive && (
                                     <span className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#FECF59] px-2.5 py-1 text-[11px] font-bold text-[#1a1a1a] shadow-md">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-[#1a1a1a] animate-pulse" />
+                                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                                       Đang xem
                                     </span>
                                   )}

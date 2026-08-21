@@ -740,7 +740,7 @@ export default function MovieDetailPage() {
                       /* ---- Phim lẻ: các bản chiếu — thẻ màu, không có
                           chữ nhỏ bên dưới, poster tràn bên phải ---- */
                       <div>
-                        <h3 className="mb-4 text-base font-bold text-white">Các bản chiếu</h3>
+                        <h3 className="mb-4 text-xl font-semibold text-white">Các bản chiếu</h3>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {episodes.map((ep) => {
                             const Icon = episodeServerIcon(ep.server_name);
