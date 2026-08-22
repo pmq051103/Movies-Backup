@@ -12,6 +12,7 @@ import {
   MovieCarousel,
   AnimeShowcase,
   Phim4KSection,
+  DetectiveSection,
 } from '@/components/movie';
 import { SectionTitle } from '@/components/common';
 import { useHistoryStore } from '@/store';
@@ -25,6 +26,7 @@ import {
 } from '@/hooks';
 import { ROUTES } from '@/constants';
 import { getMoviePoster, onImgError } from '@/utils';
+import type { MovieListItem } from '@/types';
 
 /* -------------------------------------------------------------------------- */
 /* Animation                                                                   */
@@ -171,6 +173,8 @@ export default function HomePage() {
   const { data: horrorData } = useMoviesInGenre('kinh-di', { page: 1 });
   // Doraemon — "Ăn cơm cùng Doraemon"
   const { data: doraemonData } = useSearchMovies({ keyword: 'doraemon', limit: 24 });
+  // Conan — "Hồ Sơ Vụ Án Chưa Khép Lại" (thám tử bí ẩn)
+  const { data: conanData } = useSearchMovies({ keyword: 'conan', limit: 24 });
   // Phim 4K — vsmov premium 4K catalog
   const { data: phim4kData } = useVsmov4K(1);
 
@@ -223,6 +227,37 @@ export default function HomePage() {
     () => anime?.items?.slice(0, 13) ?? [],
     [anime],
   );
+
+  // Conan search cũng dính vài phim khác chứa chữ "conan" — chỉ giữ lại
+  // phim có quốc gia Nhật Bản VÀ thuộc thể loại bí ẩn / hình sự / trình
+  // thám (search endpoint kèm mảng `country` + `category`).
+  const conanItems = useMemo(() => {
+    const items = (conanData?.items ?? []) as Array<
+      MovieListItem & {
+        country?: Array<{ slug?: string; name?: string }>;
+        category?: Array<{ slug?: string; name?: string }>;
+      }
+    >;
+    const MYSTERY = ['bi-an', 'hinh-su', 'trinh-tham', 'hai-huoc'];
+    return items.filter((m) => {
+      const isJapan = m.country?.some(
+        (c) =>
+          c.slug === 'nhat-ban' ||
+          (c.name ?? '').toLowerCase().includes('nhật'),
+      );
+      if (!isJapan) return false;
+      const isMystery = m.category?.some((c) => {
+        const name = (c.name ?? '').toLowerCase();
+        return (
+          MYSTERY.includes(c.slug ?? '') ||
+          name.includes('bí ẩn') ||
+          name.includes('hình sự') ||
+          name.includes('trình thám')
+        );
+      });
+      return isMystery;
+    });
+  }, [conanData]);
 
   return (
     <>
@@ -383,8 +418,20 @@ export default function HomePage() {
                 <MovieRow
                   title={t('home.doraemon', 'Ăn cơm cùng Doraemon')}
                   movies={doraemonData.items}
-                  viewAllLink={ROUTES.SEARCH + '?keyword=doraemon'}
+                  viewAllLink={ROUTES.SEARCH + '?q=doraemon'}
                   limit={10}
+                />
+              </motion.section>
+            )}
+
+            {/* ── Hồ Sơ Vụ Án Chưa Khép Lại (Conan / thám tử bí ẩn) ── */}
+            {conanItems.length > 0 && (
+              <motion.section variants={itemVariants}>
+                <DetectiveSection
+                  title={t('home.conan', 'Hồ Sơ Vụ Án Chưa Khép Lại')}
+                  movies={conanItems}
+                  viewAllLink={ROUTES.SEARCH + '?q=conan'}
+                  limit={12}
                 />
               </motion.section>
             )}

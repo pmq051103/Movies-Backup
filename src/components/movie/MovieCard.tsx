@@ -128,6 +128,23 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   const description = detail?.content ? stripHtml(detail.content) : '';
   const genres = detail?.category ?? [];
 
+  // Whether this movie has a real, playable episode (not trailer-only /
+  // not-yet-released). Used to hide the "Xem ngay" button in the hover
+  // popup. Only decidable once the detail (with episodes) has loaded —
+  // default to showing the button until then so we don't flicker it off
+  // for movies that DO have episodes.
+  const hasEpisodes = (() => {
+    if (!detailData) return true;
+    if (detail?.status === 'trailer') return false;
+    return (
+      detailData.episodes?.some((ep) =>
+        ep.server_data?.some(
+          (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
+        ),
+      ) ?? false
+    );
+  })();
+
   // Compute the fixed popup position from the card's on-screen rect. The
   // popup is wider than the card and centered on it horizontally, anchored
   // just above the card, clamped to the viewport so it never overflows the
@@ -311,16 +328,18 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
 
                 {/* Action buttons */}
                 <div className="mt-3 flex items-center gap-2">
-                  <Link
-                    to={watchUrl}
-                    onClick={(e) => e.stopPropagation()}
-                    title={t('movie.watchNow')}
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-[#0f1115] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
-                  >
-                    <FaPlay className="h-3 w-3" />
-                    {t('movie.watchNow')}
-                  </Link>
+                  {hasEpisodes && (
+                    <Link
+                      to={watchUrl}
+                      onClick={(e) => e.stopPropagation()}
+                      title={t('movie.watchNow')}
+                      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-[#0f1115] transition-transform hover:scale-[1.02]"
+                      style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
+                    >
+                      <FaPlay className="h-3 w-3" />
+                      {t('movie.watchNow')}
+                    </Link>
+                  )}
 
                   <button
                     type="button"

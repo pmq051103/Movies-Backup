@@ -16,7 +16,7 @@ import {
   getMovieDetailDual,
   getVsmov4KMovies,
 } from '@/api/dualSource';
-import { getTmdbExtras } from '@/api/tmdbService';
+import { getTmdbExtras, getTmdbImageUrl } from '@/api/tmdbService';
 import type {
   MovieListItem,
   MovieDetailResponse,
@@ -133,6 +133,13 @@ export interface HeroSlide extends MovieListItem {
   lang_key?: string;
   category?: { id: number; name: string; slug: string }[];
   country?: { id: number; name: string; slug: string }[];
+  /** A wide landscape backdrop (from TMDB) used as the banner image when
+   *  available — looks far better than the cropped `thumb_url`. */
+  backdrop_url?: string | null;
+  /** True when the movie has at least one REAL, playable episode link —
+   *  used to hide the "Xem ngay" button for trailer-only / not-yet-released
+   *  titles. */
+  has_episodes?: boolean;
 }
 
 export function useHeroMovies(movies: MovieListItem[], limit = 5) {
@@ -148,10 +155,26 @@ export function useHeroMovies(movies: MovieListItem[], limit = 5) {
         // content, so every slide gets a description if any source has one.
         queryFn: async () => {
           const primary = await getMovieDetailFromSource(m.slug, src);
-          if (primary?.movie?.content) return primary;
-          const merged = await getMovieDetailDual(m.slug, src).catch(() => null);
-          if (merged?.movie?.content) return merged;
-          return primary ?? merged;
+          const base =
+            primary?.movie?.content
+              ? primary
+              : (await getMovieDetailDual(m.slug, src).catch(() => null)) ??
+                primary;
+
+          // Pull a wide landscape backdrop from TMDB so the hero banner can
+          // use a proper 16:9 image instead of the cropped `thumb_url`.
+          let backdrop: string | null = null;
+          const tmdbId = base?.movie?.tmdb?.id;
+          const tmdbType = base?.movie?.tmdb?.type;
+          if (TMDB_API_KEY && tmdbId) {
+            const extras = await getTmdbExtras(tmdbId, tmdbType).catch(
+              () => null,
+            );
+            const best = extras?.backdrops?.[0]?.file_path;
+            if (best) backdrop = getTmdbImageUrl(best, 'w1280');
+          }
+
+          return { detail: base, backdrop };
         },
         enabled: !!m.slug,
         staleTime: 10 * 60 * 1000,
@@ -160,8 +183,21 @@ export function useHeroMovies(movies: MovieListItem[], limit = 5) {
   });
 
   return slides.map((m, i) => {
-    const detail = queries[i]?.data?.movie;
-    if (!detail) return m as HeroSlide;
+    const result = queries[i]?.data;
+    const detail = result?.detail?.movie;
+    const backdrop = result?.backdrop ?? null;
+    // A slide has a playable episode when it's not trailer-only AND at
+    // least one server_data entry carries a real embed/m3u8 link.
+    const hasEpisodes =
+      detail?.status !== 'trailer' &&
+      (result?.detail?.episodes?.some((ep) =>
+        ep.server_data?.some(
+          (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
+        ),
+      ) ??
+        false);
+    if (!detail)
+      return { ...m, backdrop_url: backdrop, has_episodes: false } as HeroSlide;
     return {
       ...m,
       content: detail.content,
@@ -173,6 +209,8 @@ export function useHeroMovies(movies: MovieListItem[], limit = 5) {
       category: detail.category,
       country: detail.country,
       tmdb: detail.tmdb,
+      backdrop_url: backdrop,
+      has_episodes: hasEpisodes,
     } as HeroSlide;
   });
 }

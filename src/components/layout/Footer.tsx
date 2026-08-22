@@ -22,7 +22,6 @@ const footerLinks: FooterLink[] = [
   { label: "Giới thiệu", path: "#" },
   { label: "Liên hệ", path: "#" },
   { label: "Tải App", path: ROUTES.DOWNLOAD_APP },
-  { label: "Donate", path: ROUTES.DONATE },
 ];
 
 const socialLinks = [
@@ -106,9 +105,16 @@ const Footer: React.FC = () => {
         </div>
 
         {/* Description */}
-        <div className="mt-4 max-w-5xl text-left">
+        <div className="mt-4 max-w-5xl text-left space-y-3">
           <p className="text-[14px] leading-[1.8] text-white/60 max-w-[85ch]">
             {t("footer.description")}
+          </p>
+          <p className="text-[14px] leading-[1.8] text-white/60 max-w-[85ch]">
+            Website được phát triển bởi{" "}
+            <span className="text-yellow-400 font-semibold">Phạm Minh Quang</span>{" "}
+            nhằm phục vụ cộng đồng người xem, hoàn toàn miễn phí và không quảng
+            cáo. Nguồn phim được lấy từ các bên thứ ba, Không Gian Phim không lưu
+            trữ bất kỳ nội dung nào trên hệ thống của mình.
           </p>
         </div>
 

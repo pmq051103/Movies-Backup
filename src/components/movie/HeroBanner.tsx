@@ -94,10 +94,15 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
         <div className="absolute inset-0 w-full h-full z-10 overflow-hidden">
           {slides.map((movie, idx) => {
             const active = idx === currentIndex;
+            // Prefer a wide TMDB backdrop (proper 16:9 landscape) so the
+            // banner isn't a cropped/zoomed portrait thumb. Fall back to
+            // thumb_url, then poster_url.
             const src =
-              typeof movie.thumb_url === 'string' && movie.thumb_url.length > 0
-                ? getMoviePoster(movie.thumb_url, movie.poster_url)
-                : getMoviePoster(movie.poster_url, movie.thumb_url);
+              typeof movie.backdrop_url === 'string' && movie.backdrop_url.length > 0
+                ? movie.backdrop_url
+                : typeof movie.thumb_url === 'string' && movie.thumb_url.length > 0
+                  ? getMoviePoster(movie.thumb_url, movie.poster_url)
+                  : getMoviePoster(movie.poster_url, movie.thumb_url);
             const rating = movie.tmdb?.vote_average
               ? parseFloat(String(movie.tmdb.vote_average))
               : null;
@@ -252,17 +257,19 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
 
                           {/* Actions (desktop) */}
                           <div className="hidden md:flex justify-center md:justify-start items-center gap-4">
-                            <Link
-                              to={`${ROUTES.WATCH}/${movie.slug}`}
-                              title={t('movie.watchNow')}
-                              className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 text-[#0f1115] rounded-full flex items-center justify-center transition-transform hover:scale-105 shadow-[0_0_15px_rgba(254,207,89,0.5)] shrink-0"
-                              style={{
-                                background:
-                                  'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
-                              }}
-                            >
-                              <FaPlay className="relative w-6 h-6 md:w-8 md:h-8 text-[#0f1115] translate-x-0.5" />
-                            </Link>
+                            {movie.has_episodes !== false && (
+                              <Link
+                                to={`${ROUTES.WATCH}/${movie.slug}`}
+                                title={t('movie.watchNow')}
+                                className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 text-[#0f1115] rounded-full flex items-center justify-center transition-transform hover:scale-105 shadow-[0_0_15px_rgba(254,207,89,0.5)] shrink-0"
+                                style={{
+                                  background:
+                                    'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
+                                }}
+                              >
+                                <FaPlay className="relative w-6 h-6 md:w-8 md:h-8 text-[#0f1115] translate-x-0.5" />
+                              </Link>
+                            )}
 
                             <div className="flex bg-white/5 border border-white/20 rounded-full backdrop-blur-md h-10 md:h-12 lg:h-14 items-center overflow-hidden">
                               <button
@@ -335,9 +342,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                 >
                   <img
                     src={
-                      typeof slide.thumb_url === 'string' && slide.thumb_url.length > 0
-                        ? getMoviePoster(slide.thumb_url, slide.poster_url)
-                        : getMoviePoster(slide.poster_url, slide.thumb_url)
+                      typeof slide.backdrop_url === 'string' && slide.backdrop_url.length > 0
+                        ? slide.backdrop_url
+                        : typeof slide.thumb_url === 'string' && slide.thumb_url.length > 0
+                          ? getMoviePoster(slide.thumb_url, slide.poster_url)
+                          : getMoviePoster(slide.poster_url, slide.thumb_url)
                     }
                     alt={slide.name}
                     className="object-cover w-full h-full"

@@ -4,7 +4,6 @@ import { Helmet } from "react-helmet-async";
 
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import BottomNav from "@/components/layout/BottomNav";
 import WelcomeTip from "@/components/common/WelcomeTip";
 import ScrollToTopButton from "@/components/common/ScrollToTopButton";
 import { ROUTES } from "@/constants";
@@ -49,9 +48,6 @@ const MainLayout: React.FC = () => {
 
         <Footer />
       </div>
-
-      {/* Mobile bottom nav (tophim style) */}
-      <BottomNav />
 
       {/* First-visit tip about dual-source search */}
       <WelcomeTip />

@@ -84,6 +84,21 @@ const MovieHoverWrapper: React.FC<MovieHoverWrapperProps> = ({ movie, children, 
   const description = detail?.content ? stripHtml(detail.content) : '';
   const genres = detail?.category ?? [];
 
+  // Hide "Xem ngay" for trailer-only / not-yet-released titles. Default to
+  // showing it until the detail (with episodes) has loaded, so movies that
+  // DO have episodes don't flicker the button off.
+  const hasEpisodes = (() => {
+    if (!detailData) return true;
+    if (detail?.status === 'trailer') return false;
+    return (
+      detailData.episodes?.some((ep) =>
+        ep.server_data?.some(
+          (sd) => sd.link_embed?.trim() || sd.link_m3u8?.trim(),
+        ),
+      ) ?? false
+    );
+  })();
+
   const computePos = useCallback(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -178,16 +193,18 @@ const MovieHoverWrapper: React.FC<MovieHoverWrapperProps> = ({ movie, children, 
                 )}
 
                 <div className="mt-3 flex items-center gap-2">
-                  <Link
-                    to={watchUrl}
-                    onClick={(e) => e.stopPropagation()}
-                    title={t('movie.watchNow')}
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-[#0f1115] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
-                  >
-                    <FaPlay className="h-3 w-3" />
-                    {t('movie.watchNow')}
-                  </Link>
+                  {hasEpisodes && (
+                    <Link
+                      to={watchUrl}
+                      onClick={(e) => e.stopPropagation()}
+                      title={t('movie.watchNow')}
+                      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-[#0f1115] transition-transform hover:scale-[1.02]"
+                      style={{ background: 'linear-gradient(39deg, #fecf59, #fff1cc)' }}
+                    >
+                      <FaPlay className="h-3 w-3" />
+                      {t('movie.watchNow')}
+                    </Link>
+                  )}
 
                   <button
                     type="button"

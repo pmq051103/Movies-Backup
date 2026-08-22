@@ -72,7 +72,7 @@ export default function Logo({
       />
 
       {/* Brand name text — always visible (header + footer), regardless of viewport width */}
-      <span className={`flex flex-col justify-center -ml-6 ${textSizes[size]}`}>
+      <span className={`flex flex-col justify-center -ml-2 ${textSizes[size]}`}>
         <motion.span
           className="font-bold tracking-[0.08em] text-transparent bg-clip-text
             bg-[linear-gradient(90deg,#8a6212_0%,#a8791a_25%,#caa23e_50%,#a8791a_75%,#8a6212_100%)]

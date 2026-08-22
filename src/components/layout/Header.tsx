@@ -59,7 +59,7 @@ const Header: React.FC = () => {
   const scrollY = useScrollPosition();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] =
-    useState<null | "genres" | "countries" | "more">(null);
+    useState<null | "genres" | "countries">(null);
   const [genreQuery, setGenreQuery] = useState("");
   const [countryQuery, setCountryQuery] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,14 +188,6 @@ const Header: React.FC = () => {
       width: "w-[400px]",
     },
   };
-
-  const moreItems: NavItem[] = [
-    { label: "Phim Chiếu Rạp", path: ROUTES.NOW_PLAYING },
-    { label: "Phim Đánh Giá Cao", path: ROUTES.TOP_RATED },
-    { label: t("nav.favorites"), path: ROUTES.FAVORITES },
-    { label: "Lịch Chiếu", path: ROUTES.TV_SHOW_PROGRAMS },
-    { label: "Tải App", path: ROUTES.DOWNLOAD_APP },
-  ];
 
   const goResult = useCallback(
     (movie: { slug: string; _source?: string }) => {
@@ -447,41 +439,6 @@ const Header: React.FC = () => {
                       </div>
                     );
                   })}
-
-                  {/* Thêm dropdown */}
-                  <div
-                    className="relative group"
-                    onMouseEnter={() => {
-                      if (closeTimer.current) clearTimeout(closeTimer.current);
-                      setOpenDropdown("more");
-                    }}
-                    onMouseLeave={scheduleClose}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenDropdown((prev) => (prev === "more" ? null : "more"))
-                      }
-                      className={dropdownBtnClasses(openDropdown === "more")}
-                    >
-                      Thêm
-                      <span className="ml-1 text-[10px]">▾</span>
-                    </button>
-                    <div className="absolute top-full left-0 mt-1 w-[210px] bg-zinc-900 border border-zinc-800 rounded-xl p-2 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition-all duration-200">
-                      <div className="flex flex-col gap-0.5">
-                        {moreItems.map((item) => (
-                          <RouterLink
-                            key={item.path}
-                            to={item.path}
-                            onClick={() => setOpenDropdown(null)}
-                            className="px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
-                          >
-                            {item.label}
-                          </RouterLink>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </nav>
               </div>
 

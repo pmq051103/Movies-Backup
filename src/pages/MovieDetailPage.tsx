@@ -236,6 +236,22 @@ export default function MovieDetailPage() {
   /* ------------------------------------------------------------------ */
   const backdropUrl = getImageUrl(movie.thumb_url) || getImageUrl(movie.poster_url);
   const posterUrl = getMoviePoster(movie.poster_url, movie.thumb_url);
+  // Hero banner image should be DIFFERENT from the poster/avatar whenever
+  // there's more than one image available (TMDB gallery usually has
+  // several). Build a candidate list — wide TMDB backdrops first, then the
+  // phim API thumb — and pick the first one that isn't the same as the
+  // poster. Only when there's literally a single image do we allow reusing
+  // the poster for the banner.
+  const heroBackdropUrl = (() => {
+    const candidates = [
+      ...tmdbBackdrops
+        .map((img) => getTmdbImageUrl(img.file_path, 'w1280'))
+        .filter((s): s is string => !!s),
+      getImageUrl(movie.thumb_url),
+    ].filter((s): s is string => !!s);
+    const distinct = candidates.find((s) => s !== posterUrl);
+    return distinct || candidates[0] || backdropUrl;
+  })();
   const isSeries = movie.type === 'series';
   // Phim mới có trailer (chưa phát hành / chưa có nguồn xem thật) — ẩn nút
   // "Xem Ngay" và phần số tập/danh sách tập, vì lúc này chỉ có trailer để
@@ -340,9 +356,9 @@ export default function MovieDetailPage() {
              page instead of a plain "movie poster header". ---- */}
         <div className="always-dark relative w-full aspect-[390/240] sm:aspect-video lg:aspect-[21/9] overflow-hidden rounded-b-[28px] bg-[#0f1115] lg:-mt-16 lg:rounded-b-[36px]">
           <img
-            src={backdropUrl}
+            src={heroBackdropUrl}
             alt={movie.name}
-            className="absolute inset-0 h-full w-full object-cover object-top"
+            className="absolute inset-0 h-full w-full object-cover object-center"
             onError={onImgError}
           />
 
@@ -725,7 +741,11 @@ export default function MovieDetailPage() {
                 <div className="mt-6">
                   {/* ---- Tập phim ---- */}
                   {activeTab === 'episodes' &&
-                    (!hasEpisodes ? (
+                    (isTrailerOnly ? (
+                      <p className="py-8 text-center text-sm text-gray-500">
+                        Phim chưa phát hành — hiện chỉ có trailer. Xem trailer ở tab Gallery nhé!
+                      </p>
+                    ) : !hasEpisodes ? (
                       <p className="py-8 text-center text-sm text-gray-500">
                         {t('movie.singleMovieNote')}
                       </p>
