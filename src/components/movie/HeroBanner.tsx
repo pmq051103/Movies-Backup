@@ -90,7 +90,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
     <section className="always-dark relative w-full">
       {/* Container — exact tophim aspect/margins. `lg:-mt-16` pulls it up
           under the transparent desktop header. */}
-      <div className="relative w-full aspect-[390/240] sm:aspect-[390/240] md:aspect-video lg:aspect-[21/10] bg-[#0f1115] overflow-visible md:overflow-hidden group mb-24 md:mb-0 lg:-mt-16">
+      <div className="relative w-full aspect-[390/240] sm:aspect-[390/240] md:aspect-video lg:aspect-[21/10] bg-[#191b24] overflow-visible md:overflow-hidden group mb-24 md:mb-0 lg:-mt-16">
         <div className="absolute inset-0 w-full h-full z-10 overflow-hidden">
           {slides.map((movie, idx) => {
             const active = idx === currentIndex;
@@ -115,7 +115,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                 <div className="w-full h-full relative">
                   {/* Ken Burns background */}
                   <div
-                    className={`absolute inset-0 bg-[#0f1115] transition-transform duration-[1800ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+                    className={`absolute inset-0 bg-[#191b24] transition-transform duration-[1800ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
                       active ? 'translate-x-0 scale-100' : 'translate-x-[4%] scale-[1.03]'
                     }`}
                   >
@@ -138,21 +138,27 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                     }}
                   />
 
-                  {/* Mobile gradient */}
+                  {/* Mobile gradient — fades all the way down to the exact
+                      page background color (#191b24) with a soft multi-stop
+                      curve, instead of stopping at a different near-black
+                      tone and leaving a visible seam where the banner ends
+                      and the page background begins. */}
                   <div
                     className="absolute inset-0 pointer-events-none md:hidden"
                     style={{
                       background:
-                        'linear-gradient(to top, rgb(15, 17, 26) 5%, rgba(15, 17, 21, 0.6) 30%, transparent 60%), radial-gradient(transparent 60%, rgba(15, 17, 26, 0.7) 100%)',
+                        'linear-gradient(to top, #191b24 0%, rgba(25,27,36,0.94) 12%, rgba(25,27,36,0.6) 30%, rgba(25,27,36,0.15) 55%, transparent 75%), radial-gradient(transparent 55%, rgba(25,27,36,0.65) 100%)',
                     }}
                   />
 
-                  {/* Desktop gradient */}
+                  {/* Desktop gradient — same idea: soft multi-stop fade
+                      down to the page background color instead of a hard
+                      cutoff. */}
                   <div
                     className="absolute inset-0 pointer-events-none hidden md:block"
                     style={{
                       background:
-                        'linear-gradient(to right, rgba(15, 17, 26, 0.6) 0%, rgba(15, 17, 26, 0.1) 30%, transparent 60%), linear-gradient(to top, rgb(15, 17, 26) 0%, transparent 40%), radial-gradient(transparent 65%, rgba(15, 17, 26, 0.8) 100%)',
+                        'linear-gradient(to right, rgba(25,27,36,0.6) 0%, rgba(25,27,36,0.1) 30%, transparent 60%), linear-gradient(to top, #191b24 0%, rgba(25,27,36,0.92) 10%, rgba(25,27,36,0.55) 28%, rgba(25,27,36,0.12) 50%, transparent 68%), radial-gradient(transparent 60%, rgba(25,27,36,0.75) 100%)',
                     }}
                   />
 
@@ -283,45 +289,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                             </div>
                           </div>
 
-                          {/* Actions (mobile) — watch + favorite + info */}
-                          <div className="md:hidden flex justify-center items-center gap-3 mt-2">
-                            <Link
-                              to={`${ROUTES.WATCH}/${movie.slug}`}
-                              title={t('movie.watchNow')}
-                              aria-label={t('movie.watchNow')}
-                              className="w-10 h-10 text-[#0f1115] rounded-full flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(254,207,89,0.5)]"
-                              style={{
-                                background:
-                                  'linear-gradient(39deg, rgb(254, 207, 89), rgb(255, 241, 204))',
-                              }}
-                            >
-                              <FaPlay className="relative w-4 h-4 text-[#0f1115] translate-x-0.5" />
-                            </Link>
-
-                            <div className="flex bg-white/10 border border-white/25 rounded-full backdrop-blur-md h-10 items-center overflow-hidden">
-                              <button
-                                type="button"
-                                className="group/btn w-12 h-full flex items-center justify-center transition-all text-white active:scale-75"
-                                title={t('nav.favorites')}
-                                onClick={() => toggleFavorite(movie)}
-                                aria-label={t('nav.favorites')}
-                              >
-                                {isFavorite(movie.slug) ? (
-                                  <FaHeart className="w-5 h-5 text-[#FECF59] transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
-                                ) : (
-                                  <FaRegHeart className="w-5 h-5 text-white transition-all duration-500 ease-in-out group-hover/btn:scale-110" />
-                                )}
-                              </button>
-                              <div className="w-[1px] h-3/5 bg-white/25" />
-                              <Link
-                                to={detailUrl(movie)}
-                                className="group/link w-12 h-full flex items-center justify-center text-white"
-                                title={t('movie.moreInfo')}
-                              >
-                                <FaInfoCircle className="w-5 h-5 text-white group-hover/link:text-[#FECF59] transition-colors" />
-                              </Link>
-                            </div>
-                          </div>
+                          {/* Actions — desktop only. Mobile drops these 3
+                              buttons entirely: the whole slide is already
+                              a tap-through link to the detail page (see
+                              below), so a separate play/favorite/info row
+                              here would just be redundant clutter. */}
                         </div>
                       </div>
                     </div>

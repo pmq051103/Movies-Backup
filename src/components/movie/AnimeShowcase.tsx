@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { FaPlay, FaHeart, FaExclamation, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaPlay, FaHeart, FaExclamation } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 
 import { ROUTES, QUERY_KEYS } from "@/constants";
@@ -25,10 +25,20 @@ function stripHtml(html: string | undefined): string {
 }
 
 /**
- * "Kho Tàng Anime Mới Nhất" style showcase: one big spotlight panel (title,
- * rating/age/year/season chips, genre tags, description, play/favorite/info
- * actions) with a horizontal strip of small thumbnails underneath — clicking
- * a thumbnail swaps the whole panel instead of navigating to a new row.
+ * "Kho Tàng Anime Mới Nhất" style showcase.
+ *
+ * Desktop (`sm` and up): one big spotlight panel with the poster as a
+ * full-bleed backdrop and title/chips/description overlaid directly on
+ * top of it, plus a thumbnail filmstrip straddling the bottom edge.
+ *
+ * Mobile (below `sm`): a completely different arrangement — one single
+ * rounded block (NOT two boxes with a seam between them): the artwork on
+ * top (object-cover, natural crop, not letterboxed) fades via gradient
+ * into a solid light-gray panel directly below it, and ALL the text
+ * (title/chips/genres/description) lives in that panel. No action
+ * buttons on mobile — the title is already a tap-through link to the
+ * detail page. Nav is dots only + swipe/auto-advance/thumbnail-tap on
+ * desktop — no arrow buttons anywhere.
  */
 const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
   title,
@@ -111,13 +121,169 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
   // Hooks are all called above unconditionally — safe to bail out now.
   if (!active) return null;
 
+  // Shared chips row — same badges + same colors on mobile and desktop:
+  //  - IMDb: gold border, "IMDb" label in gold, rating number in white.
+  //  - Quality (4K/FHD/…): solid gold pill, dark text.
+  //  - Age rating (T16): solid white pill, black text.
+  //  - Year / season / episode count: no fill, a clearly-visible solid
+  //    white border + white text (not a faint white/30 tint).
+  const chips = (
+    <>
+      {rating !== null && rating > 0 && (
+        <span className="inline-flex items-center gap-1 rounded-md border border-[#ffd166] px-2.5 py-1">
+          <span className="font-extrabold text-[#ffd166]">IMDb</span>
+          <span className="font-bold text-white">{rating.toFixed(1)}</span>
+        </span>
+      )}
+      {active.quality && (
+        <span className="rounded-md bg-[#ffd166] px-2.5 py-1 font-extrabold text-[#1a1205]">
+          {active.quality}
+        </span>
+      )}
+      <span className="rounded-md bg-white px-2.5 py-1 font-extrabold text-[#111]">
+        {ageLabel}
+      </span>
+      {active.year > 0 && (
+        <span className="rounded-md border-2 border-white px-2.5 py-1 font-bold text-white">
+          {active.year}
+        </span>
+      )}
+      <span className="rounded-md border-2 border-white px-2.5 py-1 font-bold text-white">
+        {seasonLabel}
+      </span>
+      {active.episode_current && (
+        <span className="rounded-md border-2 border-white px-2.5 py-1 font-bold text-white">
+          {active.episode_current}
+        </span>
+      )}
+    </>
+  );
+
+  const genreChips = genres.length > 0 && (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      {genres.slice(0, 6).map((g) => (
+        <Link
+          key={g.slug ?? g.name}
+          to={`${ROUTES.GENRES}/${g.slug}`}
+          className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/70 transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
+        >
+          {g.name}
+        </Link>
+      ))}
+    </div>
+  );
+
+  const actions = (
+    <div className="mt-5 flex items-center gap-3">
+      <Link
+        to={watchUrl}
+        title={t("movie.watchNow")}
+        aria-label={t("movie.watchNow")}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#0f1115] shadow-[0_0_15px_rgba(254,207,89,0.5)] transition-transform hover:scale-105 sm:h-14 sm:w-14"
+        style={{ background: "linear-gradient(39deg, #fecf59, #fff1cc)" }}
+      >
+        <FaPlay className="h-5 w-5 translate-x-0.5 sm:h-6 sm:w-6" />
+      </Link>
+      <button
+        type="button"
+        title={t("movie.addFavorite")}
+        aria-label={t("movie.addFavorite")}
+        onClick={() => toggleFavorite(active)}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:border-[#ffd166] hover:text-[#ffd166] active:scale-90 sm:h-12 sm:w-12"
+      >
+        <FaHeart className={`h-4 w-4 ${isFav ? "text-[#ffd166]" : ""}`} />
+      </button>
+      <Link
+        to={detailUrl}
+        title={t("movie.moreInfo")}
+        aria-label={t("movie.moreInfo")}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:h-12 sm:w-12"
+      >
+        <FaExclamation className="h-3.5 w-3.5" />
+      </Link>
+    </div>
+  );
+
   return (
     <section className="w-full pb-12 sm:pb-14">
       <SectionTitle title={title} viewAllLink={viewAllLink} />
 
-      <div className="relative w-full">
+      {/* ================= MOBILE (below sm) ================= */}
+      <div className="sm:hidden">
+        {/* One single rounded block — the image and the info panel below
+            it are NOT two separate boxes with a seam between them, they
+            share the panel's light-gray background and the image just
+            fades into it via a gradient, so it reads as one continuous
+            card. */}
+        <div className="overflow-hidden rounded-2xl bg-[#3a3b46]">
+          <div className="relative aspect-[3/2] w-full">
+            <img
+              key={active.slug}
+              src={getMoviePoster(active.thumb_url, active.poster_url)}
+              alt={active.name}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={onImgError}
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#3a3b46] to-transparent" />
+          </div>
+
+          {/* Info panel — light gray (#3a3b46, same as the image's fade
+              target above), everything lives BELOW the image here, not
+              overlaid on top of it like on desktop. No action buttons on
+              mobile (Xem ngay/Yêu thích/Thông tin) — the title is already
+              a tap-through link to the detail page. */}
+          <div className="px-4 pb-4 pt-1">
+            <Link to={detailUrl}>
+              <h3 className="text-lg font-bold text-white transition-colors hover:text-[#ffd166]">
+                {active.name}
+              </h3>
+            </Link>
+            {active.origin_name && (
+              <p className="mt-0.5 text-sm font-medium text-[#ffd166]">{active.origin_name}</p>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-white">
+              {chips}
+            </div>
+
+            {genreChips}
+
+            {description && (
+              <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/80">
+                {description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Pagination dots — sits below the whole card (never overlapping
+            it), bigger than before so they're easier to tap. */}
+        {items.length > 1 && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {items.map((m, idx) => {
+              const isActive = idx === activeIdx;
+              return (
+                <button
+                  key={m._id ?? m.slug}
+                  type="button"
+                  onClick={() => setActiveIdx(idx)}
+                  aria-label={m.name}
+                  aria-pressed={isActive}
+                  className={`shrink-0 rounded-full transition-all duration-200 ${
+                    isActive ? "h-2.5 w-2.5 bg-[#ffd166]" : "h-2 w-2 bg-white/40"
+                  }`}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ================= DESKTOP (sm and up) ================= */}
+      <div className="relative hidden w-full sm:block">
         {/* Big spotlight panel */}
-        <div className="relative h-[480px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] sm:h-[560px] lg:h-[620px] xl:h-[680px] 2xl:h-[740px]">
+        <div className="relative h-[560px] w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] lg:h-[620px] xl:h-[680px] 2xl:h-[740px]">
           <img
             key={active.slug}
             src={getMoviePoster(active.thumb_url, active.poster_url)}
@@ -127,130 +293,45 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
             onError={onImgError}
           />
           {/* Left-to-right + bottom gradients for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#12131a] via-[#12131a]/70 to-transparent sm:via-[#12131a]/50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#12131a] via-[#12131a]/50 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#12131a] via-transparent to-transparent" />
 
           <div className="absolute inset-0 flex items-center">
-            <div className="max-w-xl px-6 sm:px-10 lg:max-w-2xl xl:max-w-3xl">
+            <div className="max-w-xl px-10 lg:max-w-2xl xl:max-w-3xl">
               <Link to={detailUrl}>
-                <h3 className="text-2xl font-bold text-white transition-colors hover:text-[#ffd166] sm:text-3xl xl:text-4xl">
+                <h3 className="text-3xl font-bold text-white transition-colors hover:text-[#ffd166] xl:text-4xl">
                   {active.name}
                 </h3>
               </Link>
               {active.origin_name && (
-                <p className="mt-1 text-sm font-medium text-[#ffd166] sm:text-base">
-                  {active.origin_name}
-                </p>
+                <p className="mt-1 text-base font-medium text-[#ffd166]">{active.origin_name}</p>
               )}
 
-              {/* Chips row */}
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-white">
-                {rating !== null && rating > 0 && (
-                  <span className="rounded-md border border-white/30 px-2.5 py-1">
-                    IMDb {rating.toFixed(1)}
-                  </span>
-                )}
-                <span className="rounded-md border border-white/30 px-2.5 py-1">{ageLabel}</span>
-                {active.year > 0 && (
-                  <span className="rounded-md border border-white/30 px-2.5 py-1">
-                    {active.year}
-                  </span>
-                )}
-                <span className="rounded-md border border-white/30 px-2.5 py-1">
-                  {seasonLabel}
-                </span>
-                {active.episode_current && (
-                  <span className="rounded-md border border-white/30 px-2.5 py-1">
-                    {active.episode_current}
-                  </span>
-                )}
+                {chips}
               </div>
 
-              {/* Genre tags */}
-              {genres.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {genres.slice(0, 6).map((g) => (
-                    <Link
-                      key={g.slug ?? g.name}
-                      to={`${ROUTES.GENRES}/${g.slug}`}
-                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] text-white/70 transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
-                    >
-                      {g.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {genreChips}
 
-              {/* Description */}
               {description && (
-                <p className="mt-3 hidden max-w-md text-sm leading-relaxed text-white/80 line-clamp-3 sm:block">
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80 line-clamp-3">
                   {description}
                 </p>
               )}
 
-              {/* Actions */}
-              <div className="mt-5 flex items-center gap-3">
-                <Link
-                  to={watchUrl}
-                  title={t("movie.watchNow")}
-                  aria-label={t("movie.watchNow")}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#0f1115] shadow-[0_0_15px_rgba(254,207,89,0.5)] transition-transform hover:scale-105 sm:h-14 sm:w-14"
-                  style={{ background: "linear-gradient(39deg, #fecf59, #fff1cc)" }}
-                >
-                  <FaPlay className="h-5 w-5 translate-x-0.5 sm:h-6 sm:w-6" />
-                </Link>
-                <button
-                  type="button"
-                  title={t("movie.addFavorite")}
-                  aria-label={t("movie.addFavorite")}
-                  onClick={() => toggleFavorite(active)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:border-[#ffd166] hover:text-[#ffd166] active:scale-90 sm:h-12 sm:w-12"
-                >
-                  <FaHeart className={`h-4 w-4 ${isFav ? "text-[#ffd166]" : ""}`} />
-                </button>
-                <Link
-                  to={detailUrl}
-                  title={t("movie.moreInfo")}
-                  aria-label={t("movie.moreInfo")}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:border-[#ffd166] hover:text-[#ffd166] sm:h-12 sm:w-12"
-                >
-                  <FaExclamation className="h-3.5 w-3.5" />
-                </Link>
-              </div>
+              {actions}
             </div>
           </div>
         </div>
 
-        {/* Prev/next arrows — desktop only. Docked to the bottom-right
-            corner instead of floating mid-panel, so they never sit on top
-            of the title/description text on the left. Mobile relies on
-            the dot pagination + auto-advance below instead. */}
+        {/* Thumbnail filmstrip — centered, straddling the boundary
+            between the spotlight panel and the page background. Extra
+            vertical padding on the scroll track keeps the active item's
+            ring from being clipped top/bottom (an `overflow-x: auto`
+            container without `overflow-y` set also clips the y-axis per
+            spec, which was cutting the ring off flush with the edges). */}
         {items.length > 1 && (
-          <div className="absolute bottom-4 right-4 z-20 hidden items-center gap-2 sm:flex">
-            <button
-              type="button"
-              onClick={() => goToMovie("prev")}
-              aria-label={t("common.scrollLeft")}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
-            >
-              <FaChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => goToMovie("next")}
-              aria-label={t("common.scrollRight")}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition-colors hover:border-[#ffd166] hover:text-[#ffd166]"
-            >
-              <FaChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Thumbnail filmstrip (desktop) — centered, straddling the
-            boundary between the spotlight panel and the page background.
-            Mobile swaps this for a row of pagination dots below. */}
-        {items.length > 1 && (
-          <div className="no-scrollbar absolute left-1/2 top-full z-10 hidden max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 overflow-x-auto px-1 sm:flex">
+          <div className="no-scrollbar absolute left-1/2 top-full z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 overflow-x-auto px-1 py-1.5">
             {items.map((m, idx) => {
               const isActive = idx === activeIdx;
               return (
@@ -274,29 +355,6 @@ const AnimeShowcase: React.FC<AnimeShowcaseProps> = ({
                     onError={onImgError}
                   />
                 </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Pagination dots (mobile) — same active-index state as the
-            thumbnail strip, just a lighter-weight indicator that fits a
-            narrow screen instead of a row of tiny posters. */}
-        {items.length > 1 && (
-          <div className="absolute left-1/2 top-full z-10 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 flex-wrap items-center justify-center gap-1.5 sm:hidden">
-            {items.map((m, idx) => {
-              const isActive = idx === activeIdx;
-              return (
-                <button
-                  key={m._id ?? m.slug}
-                  type="button"
-                  onClick={() => setActiveIdx(idx)}
-                  aria-label={m.name}
-                  aria-pressed={isActive}
-                  className={`shrink-0 rounded-full transition-all duration-200 ${
-                    isActive ? "h-2 w-2 bg-[#ffd166]" : "h-1.5 w-1.5 bg-white/40"
-                  }`}
-                />
               );
             })}
           </div>
