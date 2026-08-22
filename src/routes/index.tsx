@@ -21,6 +21,9 @@ const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
 const HistoryPage = lazy(() => import("@/pages/HistoryPage"));
 const NowPlayingPage = lazy(() => import("@/pages/NowPlayingPage"));
 const Phim4KPage = lazy(() => import("@/pages/Phim4KPage"));
+const ThuyetMinhPage = lazy(() => import("@/pages/ThuyetMinhPage"));
+const LongTiengPage = lazy(() => import("@/pages/LongTiengPage"));
+const CoTrangTQPage = lazy(() => import("@/pages/CoTrangTQPage"));
 const DonatePage = lazy(() => import("@/pages/DonatePage"));
 const DownloadAppPage = lazy(() => import("@/pages/DownloadAppPage"));
 const StatsPage = lazy(() => import("@/pages/StatsPage"));
@@ -71,6 +74,9 @@ export default function AppRoutes() {
             <Route path="/quoc-gia/:slug" element={<CountryPage />} />
             <Route path="/phim-chieu-rap" element={<NowPlayingPage />} />
             <Route path="/phim-4k" element={<Phim4KPage />} />
+            <Route path="/phim-thuyet-minh" element={<ThuyetMinhPage />} />
+            <Route path="/phim-long-tieng" element={<LongTiengPage />} />
+            <Route path="/co-trang-trung-quoc" element={<CoTrangTQPage />} />
             <Route path="/top-rated" element={<TopRatedPage />} />
             <Route path="/tim-kiem" element={<SearchPage />} />
             <Route path="/phim/:slug" element={<MovieDetailPage />} />

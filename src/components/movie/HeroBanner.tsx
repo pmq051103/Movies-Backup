@@ -122,7 +122,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ movies }) => {
                     <img
                       src={src}
                       alt={movie.name}
-                      className="object-cover object-top w-full h-full"
+                      className="object-cover object-center w-full h-full"
                       loading={idx === 0 ? 'eager' : 'lazy'}
                       onError={onImgError}
                     />

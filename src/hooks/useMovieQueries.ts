@@ -8,6 +8,7 @@ import {
   getCountries,
   getMoviesByCountry,
   getMoviesBySlug,
+  getFilteredList,
   getMovieCatalogStats,
 } from '@/api';
 import {
@@ -200,6 +201,21 @@ export function useMoviesBySlug(slug?: string, params?: FilterParams) {
   });
 }
 
+/**
+ * Like `useMoviesBySlug` but always hits `/v1/api/danh-sach/[slug]`, so the
+ * `category` / `country` / `year` / `type` / `sort_*` filter params are
+ * honoured even for the `phim-moi-cap-nhat` catch-all slug. Used by the
+ * filterable topic pages (Top IMDb, Cổ Trang Trung Quốc, …).
+ */
+export function useFilteredList(slug?: string, params?: FilterParams) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.MOVIES_BY_SLUG, 'filtered', slug, params],
+    queryFn: () => getFilteredList(slug!, params),
+    enabled: !!slug,
+    select: selectListResponse,
+  });
+}
+
 /** Full movie/TV show detail by slug. */
 export function useMovieDetail(slug?: string, prefer?: MovieSource) {
   return useQuery<MovieDetailResponse>({
@@ -261,6 +277,8 @@ export interface FilteredSearchParams {
   country?: string;
   category?: string;
   year?: string;
+  type?: string;
+  sort_lang?: string;
   sort_field?: string;
   sort_type?: 'asc' | 'desc';
 }
@@ -276,7 +294,13 @@ export interface FilteredSearchParams {
  */
 export function useFilteredSearch(params: FilteredSearchParams) {
   const keyword = params.keyword?.trim() ?? '';
-  const hasFilters = !!(params.country || params.category || params.year);
+  const hasFilters = !!(
+    params.country ||
+    params.category ||
+    params.year ||
+    params.type ||
+    params.sort_lang
+  );
 
   return useQuery({
     queryKey: ['filteredSearch', params],
@@ -292,6 +316,8 @@ export function useFilteredSearch(params: FilteredSearchParams) {
         if (params.country) queryParams.country = params.country;
         if (params.category) queryParams.category = params.category;
         if (params.year) queryParams.year = params.year;
+        if (params.type) queryParams.type = params.type;
+        if (params.sort_lang) queryParams.sort_lang = params.sort_lang;
         if (params.sort_field) {
           queryParams.sort_field = params.sort_field;
           queryParams.sort_type = params.sort_type ?? 'desc';

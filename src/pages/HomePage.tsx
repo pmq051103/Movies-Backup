@@ -21,7 +21,6 @@ import {
   useMoviesInGenre,
   useSearchMovies,
   useVsmov4K,
-  useGenres,
   useHeroMovies,
 } from '@/hooks';
 import { ROUTES } from '@/constants';
@@ -46,26 +45,59 @@ const itemVariants = {
 };
 
 /* -------------------------------------------------------------------------- */
-/* TopicCards — "Bạn đang quan tâm gì?" gradient cards (cobephim.biz feature) */
+/* TopicCards — "Bạn đang quan tâm gì?" gradient shortcut cards               */
 /* -------------------------------------------------------------------------- */
 
-const TOPIC_GRADIENTS = [
-  'linear-gradient(135deg, #c64a80 0%, #8b2b54 100%)',
-  'linear-gradient(135deg, #4aa686 0%, #296d55 100%)',
-  'linear-gradient(135deg, #cf7852 0%, #8f4b30 100%)',
-  'linear-gradient(135deg, #d96172 0%, #993b4a 100%)',
-  'linear-gradient(135deg, #5b7bd5 0%, #3b4f8f 100%)',
-];
-
-interface TopicCardsProps {
-  genres: Array<{ _id: number; name: string; slug: string }>;
+interface TopicCard {
+  title: string;
+  to: string;
+  cta: string;
+  gradient: string;
+  /** Optional small badge shown before the title (e.g. 4K, IMDb). */
+  badge?: string;
 }
 
-function TopicCards({ genres }: TopicCardsProps) {
-  const topics = genres.slice(0, 5);
+const TOPIC_CARDS: TopicCard[] = [
+  {
+    title: 'Phim Chiếu Rạp',
+    to: ROUTES.NOW_PLAYING,
+    cta: 'Xem toàn bộ',
+    gradient: 'linear-gradient(135deg, #b58b1f 0%, #8a6410 100%)',
+  },
+  {
+    title: 'Thuyết Minh',
+    to: ROUTES.THUYET_MINH,
+    cta: 'Xem toàn bộ',
+    gradient: 'linear-gradient(135deg, #c64a80 0%, #8b2b54 100%)',
+  },
+  {
+    title: 'Phim 4K',
+    to: ROUTES.PHIM_4K,
+    cta: 'Xem tất cả',
+    gradient: 'linear-gradient(135deg, #1f1147 0%, #3a1c71 45%, #c2410c 100%)',
+    badge: '4K',
+  },
+  {
+    title: 'Lồng Tiếng Cực Mạnh',
+    to: ROUTES.LONG_TIENG,
+    cta: 'Xem toàn bộ',
+    gradient: 'linear-gradient(135deg, #4aa686 0%, #296d55 100%)',
+  },
+  {
+    title: 'Anime mới',
+    to: ROUTES.ANIME,
+    cta: 'Xem toàn bộ',
+    gradient: 'linear-gradient(135deg, #5b7bd5 0%, #3b4f8f 100%)',
+  },
+  {
+    title: 'Cổ Trang Trung Quốc',
+    to: ROUTES.CO_TRANG_TQ,
+    cta: 'Xem toàn bộ',
+    gradient: 'linear-gradient(135deg, #cf7852 0%, #8f4b30 100%)',
+  },
+];
 
-  if (topics.length === 0) return null;
-
+function TopicCards() {
   return (
     <section className="w-full">
       <h2 className="mb-4 text-[22px] font-bold leading-tight text-white sm:text-[26px] lg:text-[30px]">
@@ -73,70 +105,33 @@ function TopicCards({ genres }: TopicCardsProps) {
       </h2>
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Premium 4K slot — always first, links to the dedicated 4K page */}
-        <Link
-          to={ROUTES.PHIM_4K}
-          className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:h-[138px] lg:min-w-0"
-          style={{ background: 'linear-gradient(135deg, #1f1147 0%, #3a1c71 45%, #c2410c 100%)' }}
-        >
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#ffd166]/25 blur-xl transition-transform duration-500 group-hover:scale-110 sm:h-32 sm:w-32" />
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0)_58%)]" />
-          <div className="relative z-10 flex h-full w-full flex-col justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center rounded-md bg-[linear-gradient(135deg,#ffd166,#ff9f43)] px-1.5 py-0.5 text-[9px] font-black tracking-wide text-[#1a1205] sm:text-[11px]">
-                4K
-              </span>
-              <h3 className="select-none text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
-                Phim 4K
-              </h3>
-            </div>
-            <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
-              Xem tất cả
-              <FaChevronRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5" />
-            </span>
-          </div>
-        </Link>
-
-        {topics.map((genre, idx) => (
+        {TOPIC_CARDS.map((card) => (
           <Link
-            key={genre._id}
-            to={`${ROUTES.GENRES}/${genre.slug}`}
+            key={card.to}
+            to={card.to}
             className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:h-[138px] lg:min-w-0"
-            style={{ background: TOPIC_GRADIENTS[idx % TOPIC_GRADIENTS.length] }}
+            style={{ background: card.gradient }}
           >
             <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-110 sm:h-32 sm:w-32" />
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_58%)]" />
             <div className="relative z-10 flex h-full w-full flex-col justify-between">
-              <h3 className="line-clamp-2 select-none pr-[28%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
-                {genre.name}
-              </h3>
-              <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/90 sm:text-[13px]">
-                Xem toàn bộ
+              <div className="flex items-center gap-1.5">
+                {card.badge && (
+                  <span className="inline-flex items-center rounded-md bg-[linear-gradient(135deg,#ffd166,#ff9f43)] px-1.5 py-0.5 text-[9px] font-black tracking-wide text-[#1a1205] sm:text-[11px]">
+                    {card.badge}
+                  </span>
+                )}
+                <h3 className="line-clamp-2 select-none pr-[20%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
+                  {card.title}
+                </h3>
+              </div>
+              <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
+                {card.cta}
                 <FaChevronRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5" />
               </span>
             </div>
           </Link>
         ))}
-
-        {genres.length > 5 && (
-          <Link
-            to={ROUTES.GENRES}
-            className="group relative flex h-[86px] min-w-[140px] flex-col justify-between overflow-hidden rounded-[24px_64px_24px_24px] p-3.5 text-white shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:h-[126px] sm:min-w-[240px] sm:rounded-[32px_100px_32px_32px] sm:p-6 lg:hidden"
-            style={{ background: '#303443' }}
-          >
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-110 sm:h-32 sm:w-32" />
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_58%)]" />
-            <div className="relative z-10 flex h-full w-full flex-col justify-between">
-              <h3 className="line-clamp-2 select-none pr-[28%] text-[14px] font-bold leading-tight sm:text-[19px] lg:text-[20px]">
-                +{genres.length - 5} chủ đề
-              </h3>
-              <span className="mt-auto inline-flex select-none items-center gap-0.5 text-[10px] font-semibold text-white/95 sm:text-[13px]">
-                Khám phá
-                <FaChevronRight className="h-2.5 w-2.5 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5" />
-              </span>
-            </div>
-          </Link>
-        )}
       </div>
     </section>
   );
@@ -154,7 +149,6 @@ export default function HomePage() {
   const { data: latestData } = useLatestMovies(1);
   const { data: latestPage2 } = useLatestMovies(2);
   const { data: latestPage3 } = useLatestMovies(3);
-  const { data: genres } = useGenres();
   const { data: anime } = useMoviesBySlug('hoat-hinh', { page: 1 });
   const { data: vietsub } = useMoviesBySlug('phim-vietsub', { page: 1 });
   const { data: longTieng } = useMoviesBySlug('phim-long-tieng', { page: 1 });
@@ -252,7 +246,7 @@ export default function HomePage() {
           >
             {/* ── Bạn đang quan tâm gì? (cobephim topic cards) ── */}
             <motion.section variants={itemVariants}>
-              <TopicCards genres={genres ?? []} />
+              <TopicCards />
             </motion.section>
 
             {/* ── Continue Watching (horizontal scroll) ── */}

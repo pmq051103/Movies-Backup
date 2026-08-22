@@ -50,11 +50,11 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalPages <= 1) return null;
 
   const arrowClasses =
-    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-300 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5 disabled:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]';
+    'flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-300 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5 disabled:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]';
 
   return (
     <nav
-      className="mt-8 flex items-center justify-center gap-3"
+      className="mt-8 flex items-center justify-center gap-4"
       aria-label={t('pagination.navigation')}
     >
       <button
@@ -64,10 +64,10 @@ const Pagination: React.FC<PaginationProps> = ({
         className={arrowClasses}
         aria-label={t('pagination.previous')}
       >
-        <FaChevronLeft className="h-3.5 w-3.5" />
+        <FaChevronLeft className="h-4 w-4" />
       </button>
 
-      <div className="flex h-10 items-center gap-2 rounded-full bg-white/5 px-4 text-sm text-gray-300">
+      <div className="flex h-12 items-center gap-2.5 rounded-full bg-white/5 px-5 text-base text-gray-300">
         <span className="font-medium text-gray-400">{t('pagination.page', 'Trang')}</span>
         <input
           type="text"
@@ -83,7 +83,7 @@ const Pagination: React.FC<PaginationProps> = ({
             }
           }}
           aria-label={t('pagination.goToPage', { page: currentPage })}
-          className="h-7 w-10 rounded-md bg-white/10 text-center font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]"
+          className="h-8 w-12 rounded-md bg-white/10 text-center text-base font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd166]"
         />
         <span className="text-gray-400">/ {totalPages}</span>
       </div>
@@ -95,7 +95,7 @@ const Pagination: React.FC<PaginationProps> = ({
         className={arrowClasses}
         aria-label={t('pagination.next')}
       >
-        <FaChevronRight className="h-3.5 w-3.5" />
+        <FaChevronRight className="h-4 w-4" />
       </button>
     </nav>
   );

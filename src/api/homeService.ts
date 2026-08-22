@@ -48,6 +48,25 @@ export async function getMoviesBySlug(
   return apiGet<APIListResponse<MovieListItem>>(url, { params });
 }
 
+/**
+ * Fetch a `/v1/api/danh-sach/[slug]` listing that ALWAYS honours the
+ * `category`, `country`, `year`, `type` and `sort_*` query params.
+ *
+ * Unlike `getMoviesBySlug`, this never falls back to the legacy
+ * `/danh-sach/phim-moi-cap-nhat` root path (which silently ignores every
+ * filter/sort param) — so `phim-moi-cap-nhat` can be used here as a
+ * catch-all "tất cả phim" list that still respects the filters, which is
+ * what the filterable topic pages (Top IMDb, Cổ Trang Trung Quốc, …) need.
+ */
+export async function getFilteredList(
+  slug: string = LIST_SLUGS.NEWEST,
+  params?: FilterParams,
+): Promise<APIListResponse<MovieListItem>> {
+  return apiGet<APIListResponse<MovieListItem>>(`/v1/api/danh-sach/${slug}`, {
+    params,
+  });
+}
+
 export const homeService = {
   getLatestMovies,
   getMoviesBySlug,

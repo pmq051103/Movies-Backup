@@ -96,6 +96,8 @@ export const LIST_SLUGS = {
   UPCOMING: 'phim-sap-chieu',
   SUBTEAM: 'subteam',
   PHIM_4K: 'phim-4k',
+  THUYET_MINH: 'phim-thuyet-minh',
+  LONG_TIENG: 'phim-long-tieng',
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -112,6 +114,9 @@ export const ROUTES = {
   NOW_PLAYING: '/phim-chieu-rap',
   UPCOMING: '/phim-sap-chieu',
   PHIM_4K: '/phim-4k',
+  THUYET_MINH: '/phim-thuyet-minh',
+  LONG_TIENG: '/phim-long-tieng',
+  CO_TRANG_TQ: '/co-trang-trung-quoc',
   SEARCH: '/tim-kiem',
   GENRES: '/the-loai',
   GENRE_DETAIL: (slug: string) => `/the-loai/${slug}`,
